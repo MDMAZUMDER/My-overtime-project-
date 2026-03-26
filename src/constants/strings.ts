@@ -6,7 +6,7 @@ export const STRINGS_DATA = {
     },
     tabs: {
       dashboard: "Dashboard",
-      addEntry: "Log Overtime",
+      addEntry: "Overtime",
       reports: "Reports",
       settings: "Settings",
     },
@@ -81,7 +81,7 @@ export const STRINGS_DATA = {
     },
     tabs: {
       dashboard: "ড্যাশবোর্ড",
-      addEntry: "ওভারটাইম যোগ করুন",
+      addEntry: "ওভারটাইম",
       reports: "রিপোর্ট",
       settings: "সেটিংস",
     },
@@ -156,7 +156,7 @@ export const STRINGS_DATA = {
     },
     tabs: {
       dashboard: "لوحة القيادة",
-      addEntry: "إضافة ساعات",
+      addEntry: "ساعات إضافية",
       reports: "التقارير",
       settings: "الإعدادات",
     },
