@@ -37,7 +37,12 @@ export class PDFService {
 
     doc.setFontSize(11);
     doc.text(`Total Overtime Hours: ${stats.totalHours.toFixed(1)}h`, 14, 68);
-    doc.text(`Total Earnings: ${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 74);
+    doc.text(`Overtime Earnings: ${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 74);
+    doc.text(`Basic Salary: ${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 80);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total Payout: ${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 88);
+    doc.setFont('helvetica', 'normal');
 
     // Detailed Table
     const tableData = entries.map((entry) => [
@@ -47,12 +52,12 @@ export class PDFService {
     ]);
 
     autoTable(doc, {
-      startY: 82,
+      startY: 96,
       head: [['Date', 'Overtime Hours', 'Earnings']],
       body: tableData,
       headStyles: { fillColor: [99, 102, 241] },
       alternateRowStyles: { fillColor: [249, 250, 251] },
-      margin: { top: 82 },
+      margin: { top: 96 },
     });
 
     const filename = `Overtime_Report_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -71,19 +76,29 @@ export class PDFService {
   }
 
   static async sharePDF(blob: Blob, filename: string) {
-    if (navigator.share) {
-      const file = new File([blob], filename, { type: 'application/pdf' });
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    
+    // Check if Web Share API is supported and can share files
+    const canShare = navigator.share && 
+                    (navigator.canShare ? navigator.canShare({ files: [file] }) : true);
+
+    if (canShare) {
       try {
         await navigator.share({
           files: [file],
           title: 'Overtime Report',
-          text: 'Check out my overtime report!',
+          text: 'My Overtime Report',
         });
       } catch (error) {
-        console.error('Error sharing PDF:', error);
+        // If user cancelled or sharing failed, fallback to download
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing PDF:', error);
+          this.downloadPDF(blob, filename);
+        }
       }
     } else {
-      alert('Sharing is not supported on this browser/device. Please download the PDF instead.');
+      // If sharing is not supported at all, just download
+      this.downloadPDF(blob, filename);
     }
   }
 }

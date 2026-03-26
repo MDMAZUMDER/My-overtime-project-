@@ -4,8 +4,18 @@ import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
 import { OvertimeEntry } from "../types/app";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, TrendingUp } from "lucide-react";
-import { calculateHourlyRate } from "../lib/calculations";
+import { ArrowLeft, Save, TrendingUp, BarChart3 } from "lucide-react";
+import { calculateHourlyRate, getBarChartData } from "../lib/calculations";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 
 export default function AddEntry() {
   const STRINGS = useStrings();
@@ -13,6 +23,11 @@ export default function AddEntry() {
   const { id } = useParams();
   const settings = StorageService.getSettings();
   const hourlyRate = useMemo(() => calculateHourlyRate(settings), [settings]);
+  const [entries, setEntries] = useState<OvertimeEntry[]>(StorageService.getEntries());
+
+  const barData = useMemo(() => {
+    return getBarChartData(entries, 7);
+  }, [entries]);
 
   const [entry, setEntry] = useState<Partial<OvertimeEntry>>({
     date: new Date().toISOString().split('T')[0],
@@ -28,10 +43,6 @@ export default function AddEntry() {
       }
     }
   }, [id]);
-
-  const estimatedEarnings = useMemo(() => {
-    return (entry.hours || 0) * hourlyRate;
-  }, [entry.hours, hourlyRate]);
 
   const handleSave = (e: FormEvent) => {
     e.preventDefault();
@@ -96,24 +107,6 @@ export default function AddEntry() {
           />
         </div>
 
-        {entry.hours && entry.hours > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-primary/10 p-4 rounded-2xl border border-primary/20 flex items-center justify-between"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/20 rounded-xl">
-                <TrendingUp className="w-4 h-4 text-primary" />
-              </div>
-              <span className="text-sm font-bold text-primary">Estimated Earnings</span>
-            </div>
-            <span className="text-lg font-bold text-primary">
-              {settings.overtime.currency} {estimatedEarnings.toFixed(2)}
-            </span>
-          </motion.div>
-        )}
-
         <div className="space-y-2">
           <label className="text-sm font-medium text-on-surface-variant ml-1">
             Note (Optional)
@@ -122,7 +115,7 @@ export default function AddEntry() {
             placeholder="Add a note..."
             value={entry.note}
             onChange={(e) => setEntry({ ...entry, note: e.target.value })}
-            className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all min-h-[100px]"
+            className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all min-h-[60px] h-20"
           />
         </div>
 
@@ -134,6 +127,69 @@ export default function AddEntry() {
           <span>{STRINGS.common.save}</span>
         </button>
       </form>
+
+      {/* Weekly Performance Chart */}
+      <div className="bg-surface-variant/30 p-6 rounded-3xl border border-outline/10 space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-primary/10 rounded-xl">
+            <BarChart3 className="w-5 h-5 text-primary" />
+          </div>
+          <h2 className="text-lg font-bold text-on-surface">Weekly Performance</h2>
+        </div>
+        
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={barData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="opacity-5" />
+              <XAxis 
+                dataKey="label" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+              />
+              <YAxis 
+                hide 
+              />
+              <Tooltip 
+                cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                contentStyle={{ 
+                  backgroundColor: 'var(--surface)', 
+                  border: '1px solid var(--outline-variant)',
+                  borderRadius: '12px',
+                  fontSize: '12px'
+                }}
+              />
+              <Bar 
+                dataKey="hours" 
+                radius={[6, 6, 0, 0]}
+                barSize={24}
+              >
+                {barData.map((entry, index) => {
+                  const colors = [
+                    '#6366f1', // Indigo
+                    '#ec4899', // Pink
+                    '#f59e0b', // Amber
+                    '#10b981', // Emerald
+                    '#3b82f6', // Blue
+                    '#8b5cf6', // Violet
+                    '#f43f5e'  // Rose
+                  ];
+                  return (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.hours > 0 ? colors[index % colors.length] : 'var(--outline-variant)'} 
+                      fillOpacity={entry.hours > 0 ? 0.9 : 0.2}
+                    />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="text-[10px] text-center text-on-surface-variant opacity-50 italic">
+          Track your daily overtime consistency over the last 7 days.
+        </p>
+      </div>
     </motion.div>
   );
 }

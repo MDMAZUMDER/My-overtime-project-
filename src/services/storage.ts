@@ -9,7 +9,19 @@ const KEYS = {
 export const StorageService = {
   getSettings(): AppSettings {
     const data = localStorage.getItem(KEYS.SETTINGS);
-    return data ? JSON.parse(data) : DEFAULT_SETTINGS;
+    if (!data) return DEFAULT_SETTINGS;
+    
+    const saved = JSON.parse(data);
+    // Deep merge with defaults to ensure all keys exist
+    return {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      notifications: { ...DEFAULT_SETTINGS.notifications, ...saved.notifications },
+      overtime: { ...DEFAULT_SETTINGS.overtime, ...saved.overtime },
+      timeFormat: { ...DEFAULT_SETTINGS.timeFormat, ...saved.timeFormat },
+      security: { ...DEFAULT_SETTINGS.security, ...saved.security },
+      appearance: { ...DEFAULT_SETTINGS.appearance, ...saved.appearance },
+    };
   },
 
   saveSettings(settings: AppSettings) {

@@ -131,8 +131,26 @@ export default function Reports() {
             <DollarSign className="w-4 h-4 text-secondary" />
           </div>
           <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">Total Earnings</p>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">OT Earnings</p>
             <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {stats.totalEarnings.toFixed(2)}</p>
+          </div>
+        </div>
+        <div className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl flex items-center space-x-3">
+          <div className="p-2 bg-surface rounded-xl">
+            <TrendingUp className="w-4 h-4 text-on-surface-variant opacity-60" />
+          </div>
+          <div>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">Basic Salary</p>
+            <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
+          </div>
+        </div>
+        <div className="bg-primary-container p-4 rounded-2xl flex items-center space-x-3 shadow-sm border border-primary/10">
+          <div className="p-2 bg-primary/10 rounded-xl">
+            <TrendingUp className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">Total Payout</p>
+            <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + stats.totalEarnings).toFixed(2)}</p>
           </div>
         </div>
       </div>

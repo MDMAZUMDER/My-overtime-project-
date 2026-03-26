@@ -10,6 +10,7 @@ import NotificationManager from "./NotificationManager";
 export default function Layout() {
   const settings = StorageService.getSettings();
   const [theme, setTheme] = useState(settings.appearance.theme);
+  const [hasUnlocked, setHasUnlocked] = useState(false);
   const [isLocked, setIsLocked] = useState(settings.security.enabled);
   const [showSplash, setShowSplash] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +24,40 @@ export default function Layout() {
     const handleSettingsChange = () => {
       const newSettings = StorageService.getSettings();
       setTheme(newSettings.appearance.theme);
-      setIsLocked(newSettings.security.enabled);
+      
+      // If security is disabled, always unlock
+      if (!newSettings.security.enabled) {
+        setIsLocked(false);
+        setHasUnlocked(false);
+      } else if (!hasUnlocked) {
+        // Only lock if we haven't unlocked in this session
+        setIsLocked(true);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        const currentSettings = StorageService.getSettings();
+        if (currentSettings.security.enabled) {
+          setIsLocked(true);
+          setHasUnlocked(false);
+        }
+      }
     };
 
     window.addEventListener("settingsChanged", handleSettingsChange);
-    return () => window.removeEventListener("settingsChanged", handleSettingsChange);
-  }, []);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener("settingsChanged", handleSettingsChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [hasUnlocked]);
+
+  const handleUnlock = () => {
+    setHasUnlocked(true);
+    setIsLocked(false);
+  };
 
   useEffect(() => {
     if (theme === "dark") {
@@ -43,7 +72,7 @@ export default function Layout() {
       <AnimatePresence>
         {showSplash && <SplashScreen />}
         {isLocked && !showSplash && (
-          <SecurityLock onUnlock={() => setIsLocked(false)} />
+          <SecurityLock onUnlock={handleUnlock} />
         )}
       </AnimatePresence>
 
