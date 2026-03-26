@@ -6,6 +6,7 @@ import { UserProfile, OvertimeEntry } from "../types/app";
 import { User, TrendingUp, Clock, DollarSign, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { calculateTotalStats, getRecentSummary } from "../lib/calculations";
+import Logo from "../components/Logo";
 
 export default function Dashboard() {
   const STRINGS = useStrings();
@@ -41,27 +42,24 @@ export default function Dashboard() {
       className="space-y-6 pb-20"
     >
       <header className="flex items-center justify-between">
-        <Link to="/profile" className="flex items-center space-x-3 bg-surface-variant/50 p-2 pr-4 rounded-full border border-outline/10">
-          <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+        <Logo iconSize={16} textSize="text-lg" />
+        <Link to="/profile" className="flex items-center space-x-2 bg-surface-variant/50 p-1 pr-3 rounded-full border border-outline/10">
+          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden shrink-0">
             {profile?.profilePhoto ? (
               <img src={profile.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-6 h-6 text-on-primary-container opacity-40" />
+              <User className="w-5 h-5 text-on-primary-container opacity-40" />
             )}
           </div>
-          <div className="text-left">
-            <p className="text-xs font-bold text-on-surface leading-tight truncate max-w-[150px]">
+          <div className="text-left min-w-0 max-w-[120px]">
+            <p className="text-[10px] font-bold text-on-surface leading-tight truncate">
               {profile?.fullName || "Guest"}
             </p>
-            <p className="text-[10px] text-on-surface-variant opacity-60 truncate max-w-[150px]">
-              {profile?.companyName || "Welcome back!"}
+            <p className="text-[8px] text-on-surface-variant opacity-60 truncate">
+              {profile?.designation || STRINGS.settings.profile}
             </p>
           </div>
         </Link>
-        <div className="text-right">
-          <p className="text-[10px] font-bold text-primary uppercase tracking-widest opacity-60">Status</p>
-          <p className="text-xs font-bold text-on-surface">Active</p>
-        </div>
       </header>
 
       <div className="grid grid-cols-2 gap-4">

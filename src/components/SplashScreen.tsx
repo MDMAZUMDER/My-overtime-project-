@@ -1,39 +1,76 @@
 import { motion } from "motion/react";
-import { Clock } from "lucide-react";
+import Logo from "./Logo";
 
 export default function SplashScreen() {
   return (
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center"
+      className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center overflow-hidden"
     >
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 0],
+            opacity: [0.1, 0.2, 0.1]
+          }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.3, 1],
+            rotate: [0, -90, 0],
+            opacity: [0.1, 0.15, 0.1]
+          }}
+          transition={{ duration: 12, repeat: Infinity, delay: 1 }}
+          className="absolute -bottom-24 -right-24 w-96 h-96 bg-secondary rounded-full blur-3xl"
+        />
+      </div>
+
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="bg-white/20 p-8 rounded-[40px] backdrop-blur-sm"
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="relative"
       >
-        <Clock className="w-20 h-20 text-white" />
+        <div className="relative z-10 bg-white/10 p-10 rounded-[48px] backdrop-blur-md border border-white/20 shadow-2xl">
+          <Logo iconSize={80} showText={false} />
+        </div>
+        
+        {/* Glow effect */}
+        <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full -z-10 scale-75" />
       </motion.div>
+
       <motion.div
-        initial={{ y: 20, opacity: 0 }}
+        initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="mt-8 text-center"
+        transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
+        className="mt-12 text-center relative z-10"
       >
-        <h1 className="text-3xl font-bold text-white tracking-tight">Overtime Tracker</h1>
-        <p className="text-white/60 text-sm mt-2 font-medium uppercase tracking-widest">Master Your Time</p>
+        <h1 className="text-4xl font-black text-white tracking-tighter">
+          OT <span className="text-secondary">TRACKER</span>
+        </h1>
+        <div className="flex items-center justify-center space-x-2 mt-3">
+          <div className="h-[1px] w-8 bg-white/30" />
+          <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.3em]">Master Your Time</p>
+          <div className="h-[1px] w-8 bg-white/30" />
+        </div>
       </motion.div>
       
-      <div className="absolute bottom-12">
-        <div className="flex space-x-1">
+      <div className="absolute bottom-16">
+        <div className="flex space-x-2">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              animate={{ opacity: [0.3, 1, 0.3] }}
+              animate={{ 
+                scale: [1, 1.5, 1],
+                opacity: [0.3, 1, 0.3] 
+              }}
               transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.2 }}
-              className="w-2 h-2 bg-white rounded-full"
+              className="w-2.5 h-2.5 bg-white rounded-full shadow-sm"
             />
           ))}
         </div>
@@ -41,3 +78,5 @@ export default function SplashScreen() {
     </motion.div>
   );
 }
+
+

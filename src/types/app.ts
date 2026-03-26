@@ -1,6 +1,10 @@
 export interface UserProfile {
   fullName: string;
   companyName?: string;
+  employeeId?: string;
+  department?: string;
+  designation?: string;
+  joinDate?: string;
   profilePhoto?: string; // Base64 string
 }
 

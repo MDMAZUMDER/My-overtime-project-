@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { User, Globe, Bell, DollarSign, Shield, Database, ChevronRight, Palette, Clock } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { Link } from "react-router-dom";
+import Logo from "../components/Logo";
 
 export default function Settings() {
   const STRINGS = useStrings();
@@ -20,10 +21,11 @@ export default function Settings() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-6 pb-20"
     >
-      <header>
+      <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.settings}</h1>
+        <Logo iconSize={16} showText={false} />
       </header>
 
       {/* TODO: Implement settings logic (theme switching, language selection, etc.) */}
