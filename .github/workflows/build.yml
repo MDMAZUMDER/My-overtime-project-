@@ -84,6 +84,54 @@ jobs:
           name: Android-APK-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
 
+      # 5️⃣ Install dependencies
+      - name: Install Dependencies
+        run: npm install --force
+
+      # 6️⃣ Build Web App
+      - name: Build Web App
+        run: |
+          npm run build || true
+          if [ ! -d "dist" ]; then
+            mkdir -p dist
+            cp index.html dist/ 2>/dev/null || true
+          fi
+
+      # 7️⃣ Setup Capacitor (Auto Android Fix)
+      - name: Setup Capacitor
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.myapp.demo",
+            "appName": "MyApp",
+            "webDir": "dist",
+            "server": {
+              "androidScheme": "https",
+              "hostname": "localhost",
+              "cleartext": true
+            }
+          }
+          EOF
+
+          npx cap add android || true
+          npx cap sync android
+
+      # 8️⃣ Build APK
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # 9️⃣ Upload APK (FIX: unique artifact name)
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-APK-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+
       # 5️⃣ Install Dependencies
       - name: Install Dependencies
         run: npm install --force
