@@ -61,27 +61,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk          java-version: '17'
-
-      # 6. Give permission to gradlew
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      # 7. Sync Capacitor (Updates Android project with web assets)
-      - name: Capacitor Sync
-        run: npx cap sync android
-
-      # 8. Clean project
-      - name: Clean Project
-        run: ./gradlew clean
-
-      # 9. Build APK
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      # 10. Upload APK
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
