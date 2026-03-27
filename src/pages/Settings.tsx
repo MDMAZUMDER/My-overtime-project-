@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { User, Globe, Bell, DollarSign, Shield, Database, ChevronRight, Palette, Clock } from "lucide-react";
+import { User, Globe, Bell, DollarSign, Shield, Database, ChevronRight, Palette, Clock, Facebook } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { Link } from "react-router-dom";
 import Logo from "../components/Logo";
@@ -47,8 +47,11 @@ export default function Settings() {
         ))}
       </div>
 
-      <div className="text-center pt-4">
-        <p className="text-xs text-on-surface-variant opacity-50">Version 1.0.0 (Alpha)</p>
+      <div className="text-center pt-8 pb-4 space-y-1">
+        <p className="text-xs text-on-surface-variant opacity-30 font-medium">Version 1.0.0</p>
+        <p className="text-[10px] text-on-surface-variant opacity-40">
+          Developed by <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
+        </p>
       </div>
     </motion.div>
   );

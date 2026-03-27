@@ -3,7 +3,7 @@ import { useStrings } from "../hooks/useStrings";
 import { useEffect, useState, useMemo } from "react";
 import { StorageService } from "../services/storage";
 import { UserProfile, OvertimeEntry } from "../types/app";
-import { User, TrendingUp, Clock, DollarSign, Calendar } from "lucide-react";
+import { User, TrendingUp, Clock, DollarSign, Calendar, Facebook } from "lucide-react";
 import { Link } from "react-router-dom";
 import { calculateTotalStats, getRecentSummary } from "../lib/calculations";
 import Logo from "../components/Logo";

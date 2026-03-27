@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { motion } from "motion/react";
-import { Camera, Save, User, Building2, IdCard, Briefcase, Calendar, MapPin } from "lucide-react";
+import { Camera, Save, User, Building2, IdCard, Briefcase, Calendar, MapPin, Facebook } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
 import { UserProfile } from "../types/app";

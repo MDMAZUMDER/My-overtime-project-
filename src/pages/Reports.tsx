@@ -4,7 +4,7 @@ import { useStrings } from "../hooks/useStrings";
 import { cn } from "../lib/utils";
 import { StorageService } from "../services/storage";
 import { OvertimeEntry } from "../types/app";
-import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, DollarSign, Download, Share2, Loader2 } from "lucide-react";
+import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, DollarSign, Download, Share2, Loader2, Facebook } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { calculateTotalStats } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
