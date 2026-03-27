@@ -40,15 +40,21 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 7. Sync Capacitor (Updates Android project with web assets)
+      # 7. Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      # 8. Sync Capacitor (Updates Android project with web assets)
       - name: Capacitor Sync
         run: npx cap sync android
 
-      # 8. Clean project
+      # 9. Clean project
       - name: Clean Project
         run: gradle clean
 
-      # 9. Build APK
+      # 10. Build APK
       - name: Build Debug APK
         run: gradle assembleDebug
 
