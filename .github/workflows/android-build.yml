@@ -40,21 +40,17 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 7. Give permission to gradlew
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      # 8. Sync Capacitor (Updates Android project with web assets)
+      # 7. Sync Capacitor (Updates Android project with web assets)
       - name: Capacitor Sync
         run: npx cap sync android
 
-      # 9. Clean project
+      # 8. Clean project
       - name: Clean Project
-        run: ./gradlew clean
+        run: gradle clean
 
-      # 10. Build APK
+      # 9. Build APK
       - name: Build Debug APK
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       # 11. Upload APK
       - name: Upload APK
