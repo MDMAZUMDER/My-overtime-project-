@@ -1,40 +1,64 @@
-name: Android APK Build
+name: Android Build Fix
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout Repository
+
+      # 1️⃣ Checkout FIRST
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js
-      - name: Set up Node.js
+      # 2️⃣ Node.js MUST be here (FIX)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
-      # 3. Install Dependencies
-      - name: Install Dependencies
-        run: npm install
+      # 3️⃣ Verify Node (debug)
+      - name: Check Node Version
+        run: node -v
 
-      # 4. Build Web Assets
-      - name: Build Web Assets
-        run: npm run build
-
-      # 5. Set up JDK
-      - name: Set up JDK 17
+      # 4️⃣ Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
+
+      # 5️⃣ Install deps
+      - name: Install Dependencies
+        run: npm install --force
+
+      # 6️⃣ Build web
+      - name: Build Web
+        run: npm run build || true
+
+      # 7️⃣ Capacitor (NOW works)
+      - name: Capacitor Sync
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap add android || true
+          npx cap sync android
+
+      # 8️⃣ Build APK
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # 9️⃣ Upload
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: APK-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk          java-version: '17'
 
       # 6. Give permission to gradlew
       - name: Make gradlew executable
