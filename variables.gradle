@@ -1,6 +1,6 @@
 ext {
     compileSdkVersion = 36
-    minSdkVersion = 21
+    minSdkVersion = 24
     targetSdkVersion = 36
     
     // Dependencies versions
