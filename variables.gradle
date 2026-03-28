@@ -1,7 +1,7 @@
 ext {
-    compileSdkVersion = 35
+    compileSdkVersion = 36
     minSdkVersion = 21
-    targetSdkVersion = 35
+    targetSdkVersion = 36
     
     // Dependencies versions
     appCompatVersion = '1.7.0'
