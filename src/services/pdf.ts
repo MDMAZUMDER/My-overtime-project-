@@ -1,9 +1,25 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { OvertimeEntry, UserProfile, AppSettings } from '../types/app';
 import { calculateTotalStats } from '../lib/calculations';
 
 export class PDFService {
+  private static async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+        resolve(base64String.split(',')[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
   static async generateReport(
     entries: OvertimeEntry[],
     profile: UserProfile | null,
@@ -67,38 +83,80 @@ export class PDFService {
   }
 
   static async downloadPDF(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const base64 = await this.blobToBase64(blob);
+        const savedFile = await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Documents,
+        });
+        
+        // On native, we might want to share it immediately or notify the user
+        // For now, let's just share it as it's the most common expectation for "download" on mobile
+        await Share.share({
+          title: 'Overtime Report',
+          text: 'Your overtime report is ready.',
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share Report',
+        });
+      } catch (error) {
+        console.error('Error saving/sharing PDF on native:', error);
+      }
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
   }
 
   static async sharePDF(blob: Blob, filename: string) {
-    const file = new File([blob], filename, { type: 'application/pdf' });
-    
-    // Check if Web Share API is supported and can share files
-    const canShare = navigator.share && 
-                    (navigator.canShare ? navigator.canShare({ files: [file] }) : true);
-
-    if (canShare) {
+    if (Capacitor.isNativePlatform()) {
       try {
-        await navigator.share({
-          files: [file],
+        const base64 = await this.blobToBase64(blob);
+        const savedFile = await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Cache, // Use Cache for temporary sharing
+        });
+
+        await Share.share({
           title: 'Overtime Report',
           text: 'My Overtime Report',
+          url: savedFile.uri,
+          dialogTitle: 'Share Overtime Report',
         });
       } catch (error) {
-        // If user cancelled or sharing failed, fallback to download
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Error sharing PDF:', error);
-          this.downloadPDF(blob, filename);
-        }
+        console.error('Error sharing PDF on native:', error);
       }
     } else {
-      // If sharing is not supported at all, just download
-      this.downloadPDF(blob, filename);
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      
+      // Check if Web Share API is supported and can share files
+      const canShare = navigator.share && 
+                      (navigator.canShare ? navigator.canShare({ files: [file] }) : true);
+
+      if (canShare) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Overtime Report',
+            text: 'My Overtime Report',
+          });
+        } catch (error) {
+          // If user cancelled or sharing failed, fallback to download
+          if ((error as Error).name !== 'AbortError') {
+            console.error('Error sharing PDF:', error);
+            this.downloadPDF(blob, filename);
+          }
+        }
+      } else {
+        // If sharing is not supported at all, just download
+        this.downloadPDF(blob, filename);
+      }
     }
   }
 }
