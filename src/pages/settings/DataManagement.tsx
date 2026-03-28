@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "motion/react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
@@ -8,6 +9,16 @@ export default function DataManagement() {
   const handleClearData = () => {
     if (window.confirm(STRINGS.settings.clearDataConfirm)) {
       StorageService.clearAllData();
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const success = await StorageService.importData(file);
+    if (!success) {
+      alert("Failed to import data. Please ensure the file is a valid backup.");
     }
   };
 
@@ -31,28 +42,34 @@ export default function DataManagement() {
           </div>
           <div className="text-left">
             <p className="font-medium text-on-surface">{STRINGS.settings.exportData}</p>
-            <p className="text-xs text-on-surface-variant opacity-60">Save your data to a JSON file</p>
+            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.settings.exportDataDescription}</p>
           </div>
         </button>
 
-        <button className="w-full flex items-center space-x-4 p-5 bg-surface-variant/30 rounded-2xl border border-outline/10 opacity-50 cursor-not-allowed">
+        <label className="w-full flex items-center space-x-4 p-5 bg-surface-variant/30 rounded-2xl border border-outline/10 hover:bg-secondary/5 transition-colors cursor-pointer">
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
           <div className="p-2 bg-secondary/10 rounded-xl">
             <Upload className="w-5 h-5 text-secondary" />
           </div>
           <div className="text-left">
             <p className="font-medium text-on-surface">{STRINGS.settings.importData}</p>
-            <p className="text-xs text-on-surface-variant opacity-60">Restore data from a backup file</p>
+            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.settings.importDataDescription}</p>
           </div>
-        </button>
+        </label>
 
         <div className="pt-8">
           <div className="bg-red-500/5 border border-red-500/20 rounded-3xl p-6 space-y-4">
             <div className="flex items-center space-x-2 text-red-500">
               <AlertTriangle className="w-5 h-5" />
-              <p className="font-bold uppercase tracking-wider text-xs">Danger Zone</p>
+              <p className="font-bold uppercase tracking-wider text-xs">{STRINGS.settings.dangerZone}</p>
             </div>
             <p className="text-sm text-on-surface-variant">
-              Clearing all data will permanently remove your profile, settings, and all overtime entries.
+              {STRINGS.settings.clearDataDescription}
             </p>
             <button
               onClick={handleClearData}

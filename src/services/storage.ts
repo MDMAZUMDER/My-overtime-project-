@@ -81,5 +81,22 @@ export const StorageService = {
     a.download = `overtime_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  async importData(file: File): Promise<boolean> {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (data.settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.settings));
+      if (data.profile) localStorage.setItem(KEYS.PROFILE, JSON.stringify(data.profile));
+      if (data.entries) localStorage.setItem(KEYS.ENTRIES, JSON.stringify(data.entries));
+      
+      window.location.reload();
+      return true;
+    } catch (error) {
+      console.error("Import failed:", error);
+      return false;
+    }
   }
 };

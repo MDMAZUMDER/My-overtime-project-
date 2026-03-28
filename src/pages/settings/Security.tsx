@@ -36,16 +36,16 @@ export default function SecuritySettings() {
           </div>
         </div>
         
-        <h2 className="text-lg font-bold text-on-surface">App Lock</h2>
+        <h2 className="text-lg font-bold text-on-surface">{STRINGS.security.appLock}</h2>
         <p className="text-sm text-on-surface-variant opacity-70">
-          Secure your overtime data using your device's biometric authentication (Fingerprint or Face ID).
+          {STRINGS.security.appLockDescription}
         </p>
 
         <div className="space-y-6 pt-6 border-t border-outline/10">
           <div className="flex items-center justify-between">
             <div className="text-left">
               <p className="font-medium text-on-surface">{STRINGS.settings.appLock}</p>
-              <p className="text-xs text-on-surface-variant opacity-60">Use device fingerprint, face, or passcode</p>
+              <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.security.biometricDescription}</p>
             </div>
             <button
               onClick={() => updateSettings({ enabled: !settings.security.enabled })}

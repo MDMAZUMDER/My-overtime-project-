@@ -28,7 +28,7 @@ export default function TimeFormatSettings() {
       className="space-y-6"
     >
       <header>
-        <h1 className="text-2xl font-bold text-on-surface">Time & Format</h1>
+        <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.timeFormat}</h1>
       </header>
 
       <div className="bg-surface-variant/30 rounded-3xl border border-outline/10 p-6 space-y-8">
@@ -84,7 +84,7 @@ export default function TimeFormatSettings() {
                     : "bg-surface text-on-surface border-outline/30"
                 }`}
               >
-                {day}
+                {day === "Sunday" ? STRINGS.common.sunday : STRINGS.common.monday}
               </button>
             ))}
           </div>

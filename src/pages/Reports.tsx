@@ -66,8 +66,8 @@ export default function Reports() {
     setIsExporting(true);
     try {
       const profile = StorageService.getProfile();
-      const title = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Overtime Report`;
-      const { blob, filename } = await PDFService.generateReport(filteredEntries, profile, settings, title);
+      const title = `${STRINGS.reports[activeTab as keyof typeof STRINGS.reports] || activeTab} ${STRINGS.reports.reportTitle}`;
+      const { blob, filename } = await PDFService.generateReport(filteredEntries, profile, settings, title, STRINGS);
       
       if (action === 'download') {
         await PDFService.downloadPDF(blob, filename);
@@ -85,7 +85,7 @@ export default function Reports() {
     { id: "daily", label: STRINGS.reports.daily },
     { id: "weekly", label: STRINGS.reports.weekly },
     { id: "monthly", label: STRINGS.reports.monthly },
-    { id: "all", label: "All" },
+    { id: "all", label: STRINGS.reports.all },
   ];
 
   return (
@@ -101,7 +101,7 @@ export default function Reports() {
             onClick={() => handleExport('download')}
             disabled={isExporting || filteredEntries.length === 0}
             className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
-            title="Download PDF"
+            title={STRINGS.reports.downloadPDF}
           >
             {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
           </button>
@@ -109,7 +109,7 @@ export default function Reports() {
             onClick={() => handleExport('share')}
             disabled={isExporting || filteredEntries.length === 0}
             className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
-            title="Share PDF"
+            title={STRINGS.reports.sharePDF}
           >
             <Share2 className="w-5 h-5" />
           </button>
@@ -122,7 +122,7 @@ export default function Reports() {
             <Clock className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">Total Hours</p>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.dashboard.totalHours}</p>
             <p className="text-sm font-bold text-on-surface">{stats.totalHours.toFixed(1)}h</p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function Reports() {
             <DollarSign className="w-4 h-4 text-secondary" />
           </div>
           <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">OT Earnings</p>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.otEarnings}</p>
             <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {stats.totalEarnings.toFixed(2)}</p>
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function Reports() {
             <TrendingUp className="w-4 h-4 text-on-surface-variant opacity-60" />
           </div>
           <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">Basic Salary</p>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.basicSalary}</p>
             <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function Reports() {
             <TrendingUp className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">Total Payout</p>
+            <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.totalPayout}</p>
             <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + stats.totalEarnings).toFixed(2)}</p>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function Reports() {
                     </p>
                     <div className="flex items-center text-xs text-on-surface-variant opacity-70 mt-0.5">
                       <Clock className="w-3 h-3 mr-1" />
-                      <span>{entry.hours} hours</span>
+                      <span>{entry.hours} {STRINGS.dashboard.hours}</span>
                       <span className="mx-2 opacity-30">|</span>
                       <TrendingUp className="w-3 h-3 mr-1 text-primary" />
                       <span className="text-primary font-medium">{settings.overtime.currency} {(entry.hours * stats.hourlyRate).toFixed(2)}</span>
@@ -238,13 +238,13 @@ export default function Reports() {
             </div>
             <div>
               <p className="text-sm font-bold text-on-surface opacity-60">{STRINGS.common.noData}</p>
-              <p className="text-xs opacity-40 mt-1">No entries found for {activeTab} period.</p>
+              <p className="text-xs opacity-40 mt-1">{STRINGS.reports.noEntriesForPeriod.replace('{period}', activeTab)}</p>
             </div>
             <button 
               onClick={() => navigate("/add")}
               className="px-6 py-2 bg-primary text-on-primary text-xs font-bold rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all"
             >
-              Add Entry
+              {STRINGS.tabs.addEntry}
             </button>
           </div>
         )}
@@ -269,23 +269,23 @@ export default function Reports() {
             >
               <div className="flex items-center space-x-3 text-red-500">
                 <AlertCircle className="w-6 h-6" />
-                <h3 className="text-lg font-bold">Delete Entry?</h3>
+                <h3 className="text-lg font-bold">{STRINGS.reports.deleteEntryTitle}</h3>
               </div>
               <p className="text-on-surface-variant text-sm leading-relaxed">
-                Are you sure you want to delete this overtime record? This action cannot be undone.
+                {STRINGS.reports.deleteEntryConfirm}
               </p>
               <div className="flex space-x-3 pt-2">
                 <button
                   onClick={() => setDeleteId(null)}
                   className="flex-1 py-3 px-4 rounded-xl font-bold text-on-surface-variant hover:bg-surface-variant transition-colors"
                 >
-                  Cancel
+                  {STRINGS.common.cancel}
                 </button>
                 <button
                   onClick={handleDelete}
                   className="flex-1 py-3 px-4 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
                 >
-                  Delete
+                  {STRINGS.common.delete}
                 </button>
               </div>
             </motion.div>

@@ -32,7 +32,7 @@ export default function NotificationSettings() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-on-surface">{STRINGS.settings.reminderEnabled}</p>
-            <p className="text-xs text-on-surface-variant opacity-60">Get notified to add your hours</p>
+            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.notifications.reminderDescription}</p>
           </div>
           <button
             onClick={() => updateSettings({ enabled: !settings.notifications.enabled })}

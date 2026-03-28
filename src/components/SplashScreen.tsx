@@ -1,7 +1,10 @@
 import { motion } from "motion/react";
 import Logo from "./Logo";
+import { useStrings } from "../hooks/useStrings";
 
 export default function SplashScreen() {
+  const STRINGS = useStrings();
+
   return (
     <motion.div
       initial={{ opacity: 1 }}
@@ -55,7 +58,7 @@ export default function SplashScreen() {
         </h1>
         <div className="flex items-center justify-center space-x-2 mt-3">
           <div className="h-[1px] w-8 bg-white/30" />
-          <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.3em]">Master Your Time</p>
+          <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.3em]">{STRINGS.splash.tagline}</p>
           <div className="h-[1px] w-8 bg-white/30" />
         </div>
       </motion.div>

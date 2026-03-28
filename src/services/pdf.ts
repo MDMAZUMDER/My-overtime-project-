@@ -24,7 +24,8 @@ export class PDFService {
     entries: OvertimeEntry[],
     profile: UserProfile | null,
     settings: AppSettings,
-    reportTitle: string = 'Overtime Report'
+    reportTitle: string = 'Overtime Report',
+    STRINGS: any
   ): Promise<{ blob: Blob; filename: string }> {
     const doc = new jsPDF();
     const stats = calculateTotalStats(entries, settings);
@@ -37,11 +38,11 @@ export class PDFService {
 
     doc.setFontSize(12);
     doc.setTextColor(80, 80, 80);
-    doc.text(`User: ${profile?.fullName || 'Guest'}`, 14, 32);
+    doc.text(`${STRINGS.profile.fullName}: ${profile?.fullName || STRINGS.dashboard.guest}`, 14, 32);
     if (profile?.companyName) {
-      doc.text(`Company: ${profile.companyName}`, 14, 38);
+      doc.text(`${STRINGS.profile.companyName}: ${profile.companyName}`, 14, 38);
     }
-    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, 44);
+    doc.text(`${STRINGS.addEntry.dateLabel}: ${new Date().toLocaleDateString()}`, 14, 44);
 
     // Summary Section
     doc.setDrawColor(229, 231, 235);
@@ -49,15 +50,15 @@ export class PDFService {
 
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('Summary', 14, 60);
+    doc.text(STRINGS.reports.reportTitle, 14, 60);
 
     doc.setFontSize(11);
-    doc.text(`Total Overtime Hours: ${stats.totalHours.toFixed(1)}h`, 14, 68);
-    doc.text(`Overtime Earnings: ${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 74);
-    doc.text(`Basic Salary: ${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 80);
+    doc.text(`${STRINGS.dashboard.totalHours}: ${stats.totalHours.toFixed(1)}h`, 14, 68);
+    doc.text(`${STRINGS.reports.otEarnings}: ${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 74);
+    doc.text(`${STRINGS.reports.basicSalary}: ${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 80);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Total Payout: ${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 88);
+    doc.text(`${STRINGS.reports.totalPayout}: ${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, 88);
     doc.setFont('helvetica', 'normal');
 
     // Detailed Table
@@ -69,7 +70,7 @@ export class PDFService {
 
     autoTable(doc, {
       startY: 96,
-      head: [['Date', 'Overtime Hours', 'Earnings']],
+      head: [[STRINGS.addEntry.dateLabel, STRINGS.dashboard.totalHours, STRINGS.reports.otEarnings]],
       body: tableData,
       headStyles: { fillColor: [99, 102, 241] },
       alternateRowStyles: { fillColor: [249, 250, 251] },

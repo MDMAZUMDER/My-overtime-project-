@@ -24,14 +24,14 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
             reason: STRINGS.security.lockedMessageBiometric,
             title: STRINGS.security.lockedTitle,
             subtitle: STRINGS.security.lockedMessageBiometric,
-            description: "Please authenticate to continue",
+            description: STRINGS.security.authenticateToContinue,
             useFallback: true, // This allows falling back to device passcode/pattern
           });
           onUnlock();
         } else {
           // If biometrics not available, we might just have to unlock or show error
           // Usually, if the user enabled it, it should be available.
-          setError("Biometric authentication not available on this device.");
+          setError(STRINGS.security.biometricNotAvailable);
         }
       } else {
         // Fallback for web/preview
@@ -41,7 +41,7 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
       }
     } catch (err: any) {
       console.error("Authentication failed", err);
-      setError(err.message || "Authentication failed. Please try again.");
+      setError(err.message || STRINGS.security.authenticationFailed);
     } finally {
       setIsAuthenticating(false);
     }
@@ -88,7 +88,7 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
           disabled={isAuthenticating}
           className="text-primary font-bold text-sm uppercase tracking-wider"
         >
-          {isAuthenticating ? "Authenticating..." : error ? "Try Again" : "Tap to Unlock"}
+          {isAuthenticating ? STRINGS.security.authenticating : error ? STRINGS.security.tryAgain : STRINGS.security.tapToUnlock}
         </button>
       </div>
     </motion.div>

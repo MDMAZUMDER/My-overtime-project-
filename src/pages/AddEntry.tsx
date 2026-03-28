@@ -47,7 +47,7 @@ export default function AddEntry() {
   const handleSave = (e: FormEvent) => {
     e.preventDefault();
     if (!entry.date || !entry.hours || entry.hours <= 0) {
-      alert("Please enter a valid date and hours.");
+      alert(STRINGS.addEntry.invalidInput);
       return;
     }
 
@@ -73,7 +73,7 @@ export default function AddEntry() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-2xl font-bold text-on-surface">
-          {id ? "Edit Entry" : STRINGS.tabs.addEntry}
+          {id ? STRINGS.addEntry.editEntry : STRINGS.tabs.addEntry}
         </h1>
       </header>
 
@@ -109,10 +109,10 @@ export default function AddEntry() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-on-surface-variant ml-1">
-            Note (Optional)
+            {STRINGS.addEntry.noteLabel}
           </label>
           <textarea
-            placeholder="Add a note..."
+            placeholder={STRINGS.addEntry.notePlaceholder}
             value={entry.note}
             onChange={(e) => setEntry({ ...entry, note: e.target.value })}
             className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all min-h-[60px] h-20"
@@ -134,7 +134,7 @@ export default function AddEntry() {
           <div className="p-2 bg-primary/10 rounded-xl">
             <BarChart3 className="w-5 h-5 text-primary" />
           </div>
-          <h2 className="text-lg font-bold text-on-surface">Weekly Performance</h2>
+          <h2 className="text-lg font-bold text-on-surface">{STRINGS.addEntry.weeklyPerformance}</h2>
         </div>
         
         <div className="h-48 w-full">
@@ -187,7 +187,7 @@ export default function AddEntry() {
           </ResponsiveContainer>
         </div>
         <p className="text-[10px] text-center text-on-surface-variant opacity-50 italic">
-          Track your daily overtime consistency over the last 7 days.
+          {STRINGS.addEntry.consistencyDesc}
         </p>
       </div>
     </motion.div>

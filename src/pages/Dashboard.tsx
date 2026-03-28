@@ -53,10 +53,10 @@ export default function Dashboard() {
           </div>
           <div className="text-left min-w-0 max-w-[120px]">
             <p className="text-[10px] font-bold text-on-surface leading-tight truncate">
-              {profile?.fullName || "Guest"}
+              {profile?.fullName || STRINGS.dashboard.guest}
             </p>
             <p className="text-[8px] text-on-surface-variant opacity-60 truncate">
-              {profile?.designation || STRINGS.settings.profile}
+              {profile?.designation || STRINGS.profile.employee}
             </p>
           </div>
         </Link>
@@ -72,7 +72,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-on-primary-container text-xs font-medium opacity-70">
-              Total Hours
+              {STRINGS.dashboard.totalHours}
             </p>
             <p className="text-on-primary-container text-2xl font-bold">
               {stats.totalHours.toFixed(1)}h
@@ -88,7 +88,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-on-secondary-container text-xs font-medium opacity-70">
-              Total Earnings
+              {STRINGS.dashboard.totalEarnings}
             </p>
             <p className="text-on-secondary-container text-2xl font-bold">
               {settings.overtime.currency} {stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -103,17 +103,17 @@ export default function Dashboard() {
             <TrendingUp className="w-4 h-4 text-amber-500" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold text-amber-500">Rate Not Set</p>
-            <p className="text-[10px] text-amber-500/70">Earnings are 0.00 because your overtime rate is not configured.</p>
+            <p className="text-xs font-bold text-amber-500">{STRINGS.dashboard.rateNotSet}</p>
+            <p className="text-[10px] text-amber-500/70">{STRINGS.dashboard.rateNotSetDesc}</p>
           </div>
-          <p className="text-[10px] font-bold text-amber-500 uppercase">Set Now</p>
+          <p className="text-[10px] font-bold text-amber-500 uppercase">{STRINGS.dashboard.setNow}</p>
         </Link>
       )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-on-surface">Recent (7 Days)</h2>
-          <Link to="/reports" className="text-xs font-bold text-primary uppercase tracking-wider">View All</Link>
+          <h2 className="text-lg font-bold text-on-surface">{STRINGS.dashboard.recent7Days}</h2>
+          <Link to="/reports" className="text-xs font-bold text-primary uppercase tracking-wider">{STRINGS.dashboard.viewAll}</Link>
         </div>
         
         {recentEntries.length > 0 ? (
@@ -128,7 +128,7 @@ export default function Dashboard() {
                     <p className="text-sm font-bold text-on-surface">
                       {new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </p>
-                    <p className="text-[10px] text-on-surface-variant opacity-50">{entry.hours} hours</p>
+                    <p className="text-[10px] text-on-surface-variant opacity-50">{entry.hours} {STRINGS.dashboard.hours}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -145,8 +145,8 @@ export default function Dashboard() {
               <Clock className="w-8 h-8 opacity-20" />
             </div>
             <div>
-              <p className="text-sm font-bold text-on-surface opacity-60">No recent entries</p>
-              <p className="text-xs opacity-40 mt-1">Start tracking your overtime today!</p>
+              <p className="text-sm font-bold text-on-surface opacity-60">{STRINGS.dashboard.noRecentEntries}</p>
+              <p className="text-xs opacity-40 mt-1">{STRINGS.dashboard.startTracking}</p>
             </div>
             <Link 
               to="/add" 

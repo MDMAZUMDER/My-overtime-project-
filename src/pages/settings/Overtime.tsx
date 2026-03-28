@@ -31,7 +31,7 @@ export default function OvertimeSettings() {
     >
       <header>
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.overtimeRate}</h1>
-        <p className="text-sm text-on-surface-variant opacity-70">Configure how your overtime pay is calculated</p>
+        <p className="text-sm text-on-surface-variant opacity-70">{STRINGS.settings.overtimeRateDescription}</p>
       </header>
 
       <div className="bg-surface-variant/30 rounded-3xl border border-outline/10 p-6 space-y-6">
@@ -46,9 +46,9 @@ export default function OvertimeSettings() {
               <AlertCircle className="w-5 h-5 text-red-500" />
             )}
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Current Active Rate</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">{STRINGS.settings.currentActiveRate}</p>
               <p className={`text-lg font-bold ${activeRate > 0 ? "text-primary" : "text-red-500"}`}>
-                {settings.overtime.currency} {activeRate.toFixed(2)} / hour
+                {settings.overtime.currency} {activeRate.toFixed(2)} / {STRINGS.common.hour}
               </p>
             </div>
           </div>
@@ -57,7 +57,7 @@ export default function OvertimeSettings() {
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-on-surface-variant ml-1">
-              Basic Salary (Monthly)
+              {STRINGS.settings.basicSalary}
             </label>
             <input
               type="number"
@@ -71,7 +71,7 @@ export default function OvertimeSettings() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-on-surface-variant ml-1">
-                Working Days
+                {STRINGS.settings.workingDays}
               </label>
               <input
                 type="number"
@@ -83,7 +83,7 @@ export default function OvertimeSettings() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-on-surface-variant ml-1">
-                Hours per Day
+                {STRINGS.settings.hoursPerDay}
               </label>
               <input
                 type="number"
@@ -101,11 +101,11 @@ export default function OvertimeSettings() {
         <div className="space-y-4">
           <div className="flex items-center justify-between p-2 bg-surface/50 rounded-2xl border border-outline/5">
             <div className="flex items-center space-x-2 ml-2">
-              <span className="text-sm font-medium text-on-surface">Use Manual Hourly Rate</span>
+              <span className="text-sm font-medium text-on-surface">{STRINGS.settings.useManualHourlyRate}</span>
               <div className="group relative">
                 <Info className="w-3.5 h-3.5 text-on-surface-variant opacity-40 cursor-help" />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-surface border border-outline rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
-                  Enable this to ignore salary calculation and set your own rate.
+                  {STRINGS.settings.manualRateTooltip}
                 </div>
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function OvertimeSettings() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-on-surface-variant ml-1">
-              {settings.overtime.useManualHourlyRate ? "Manual Hourly Rate (Editable)" : "Calculated Hourly Rate (Read-only)"}
+              {settings.overtime.useManualHourlyRate ? STRINGS.settings.manualHourlyRate : STRINGS.settings.calculatedHourlyRate}
             </label>
             <input
               type="number"
@@ -141,7 +141,7 @@ export default function OvertimeSettings() {
             />
             {!settings.overtime.useManualHourlyRate && (
               <p className="text-[10px] text-on-surface-variant opacity-60 ml-1">
-                * This rate is automatically calculated from your Basic Salary.
+                {STRINGS.settings.calculatedRateNote}
               </p>
             )}
           </div>

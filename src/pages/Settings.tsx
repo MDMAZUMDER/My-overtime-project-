@@ -11,7 +11,7 @@ export default function Settings() {
     { icon: Globe, label: STRINGS.settings.language, to: "/settings/language" },
     { icon: Bell, label: STRINGS.settings.notifications, to: "/settings/notifications" },
     { icon: DollarSign, label: STRINGS.settings.overtimeRate, to: "/settings/overtime" },
-    { icon: Clock, label: "Time & Format", to: "/settings/time-format" },
+    { icon: Clock, label: STRINGS.settings.timeFormat, to: "/settings/time-format" },
     { icon: Shield, label: STRINGS.settings.security, to: "/settings/security" },
     { icon: Database, label: STRINGS.settings.dataManagement, to: "/settings/data-management" },
     { icon: Palette, label: STRINGS.settings.appearance, to: "/settings/appearance" },
@@ -28,7 +28,6 @@ export default function Settings() {
         <Logo iconSize={16} showText={false} />
       </header>
 
-      {/* TODO: Implement settings logic (theme switching, language selection, etc.) */}
       <div className="bg-surface-variant/30 rounded-3xl border border-outline/10 overflow-hidden">
         {menuItems.map((item, index) => (
           <Link
@@ -48,9 +47,9 @@ export default function Settings() {
       </div>
 
       <div className="text-center pt-8 pb-4 space-y-1">
-        <p className="text-xs text-on-surface-variant opacity-30 font-medium">Version 1.0.0</p>
+        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.0.1</p>
         <p className="text-[10px] text-on-surface-variant opacity-40">
-          Developed by <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
+          {STRINGS.settings.developedBy} <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
         </p>
       </div>
     </motion.div>

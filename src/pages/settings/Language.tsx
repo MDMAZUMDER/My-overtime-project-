@@ -10,9 +10,9 @@ export default function LanguageSettings() {
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
 
   const languages: { id: Language; label: string }[] = [
-    { id: "en", label: "English" },
-    { id: "bn", label: "Bengali" },
-    { id: "ar", label: "Arabic" },
+    { id: "en", label: STRINGS.common.english },
+    { id: "bn", label: STRINGS.common.bengali },
+    { id: "ar", label: STRINGS.common.arabic },
   ];
 
   const handleSelect = (lang: Language) => {

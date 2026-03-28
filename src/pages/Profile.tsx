@@ -29,7 +29,7 @@ export default function Profile() {
 
   const handleSave = () => {
     if (!profile.fullName?.trim()) {
-      alert("Full Name is required");
+      alert(STRINGS.profile.fullNameRequired);
       return;
     }
     StorageService.saveProfile(profile);
@@ -102,7 +102,7 @@ export default function Profile() {
         {!isEditing && (
           <div className="text-center space-y-1">
             <h2 className="text-2xl font-bold text-on-surface">{profile.fullName}</h2>
-            <p className="text-primary font-medium">{profile.designation || "Employee"}</p>
+            <p className="text-primary font-medium">{profile.designation || STRINGS.profile.employee}</p>
           </div>
         )}
       </div>
@@ -121,7 +121,7 @@ export default function Profile() {
                   value={profile.fullName}
                   onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
                   className="w-full bg-surface border border-outline rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
-                  placeholder="John Doe"
+                  placeholder={STRINGS.profile.fullNamePlaceholder}
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function Profile() {
                   value={profile.employeeId}
                   onChange={(e) => setProfile({ ...profile, employeeId: e.target.value })}
                   className="w-full bg-surface border border-outline rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
-                  placeholder="EMP-001"
+                  placeholder={STRINGS.profile.employeeIdPlaceholder}
                 />
               </div>
             </div>
@@ -153,7 +153,7 @@ export default function Profile() {
                   value={profile.companyName}
                   onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
                   className="w-full bg-surface border border-outline rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
-                  placeholder="Acme Corp"
+                  placeholder={STRINGS.profile.companyNamePlaceholder}
                 />
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function Profile() {
                   value={profile.department}
                   onChange={(e) => setProfile({ ...profile, department: e.target.value })}
                   className="w-full bg-surface border border-outline rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
-                  placeholder="IT"
+                  placeholder={STRINGS.profile.departmentPlaceholder}
                 />
               </div>
               <div className="space-y-1.5">
@@ -180,7 +180,7 @@ export default function Profile() {
                   value={profile.designation}
                   onChange={(e) => setProfile({ ...profile, designation: e.target.value })}
                   className="w-full bg-surface border border-outline rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
-                  placeholder="Developer"
+                  placeholder={STRINGS.profile.designationPlaceholder}
                 />
               </div>
             </div>
