@@ -1,21 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
+import { NotificationService } from "../../services/notification";
 import { AppSettings } from "../../types/app";
 import { cn } from "../../lib/utils";
 
 export default function NotificationSettings() {
   const STRINGS = useStrings();
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
+  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
 
-  const updateSettings = (updates: Partial<AppSettings['notifications']>) => {
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const granted = await NotificationService.requestPermissions();
+      setPermissionGranted(granted);
+    };
+    checkPermissions();
+  }, []);
+
+  const updateSettings = async (updates: Partial<AppSettings['notifications']>) => {
     const newSettings = {
       ...settings,
       notifications: { ...settings.notifications, ...updates }
     };
+    
+    if (updates.enabled && !permissionGranted) {
+      const granted = await NotificationService.requestPermissions();
+      setPermissionGranted(granted);
+      if (!granted) return;
+    }
+
     setSettings(newSettings);
     StorageService.saveSettings(newSettings);
+    
+    // Schedule or cancel notification
+    await NotificationService.scheduleReminder(newSettings.notifications, STRINGS);
   };
 
   return (
@@ -43,7 +63,7 @@ export default function NotificationSettings() {
           >
             <div className={cn(
               "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-              settings.notifications.enabled ? "right-1" : "left-1"
+              settings.notifications.enabled ? (STRINGS.common.arabic === "العربية (Arabic)" ? "left-1" : "right-1") : (STRINGS.common.arabic === "العربية (Arabic)" ? "right-1" : "left-1")
             )} />
           </button>
         </div>
