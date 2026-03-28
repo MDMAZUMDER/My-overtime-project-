@@ -29,6 +29,7 @@ android {
 }
 
 dependencies {
+    implementation project(':capacitor-android')
     implementation "androidx.appcompat:appcompat:${rootProject.ext.appCompatVersion}"
     implementation "com.google.android.material:material:${rootProject.ext.materialVersion}"
     implementation "androidx.constraintlayout:constraintlayout:${rootProject.ext.constraintLayoutVersion}"
@@ -37,3 +38,5 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+apply from: 'capacitor.build.gradle'
