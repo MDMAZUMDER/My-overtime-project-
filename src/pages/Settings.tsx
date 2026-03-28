@@ -47,7 +47,7 @@ export default function Settings() {
       </div>
 
       <div className="text-center pt-8 pb-4 space-y-1">
-        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.0.9</p>
+        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.1.1</p>
         <p className="text-[10px] text-on-surface-variant opacity-40">
           {STRINGS.settings.developedBy} <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
         </p>

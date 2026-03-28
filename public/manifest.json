@@ -1,6 +1,6 @@
 {
-  "name": "OT",
-  "short_name": "OT",
+  "name": "OverTime",
+  "short_name": "OverTime",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0a0502",

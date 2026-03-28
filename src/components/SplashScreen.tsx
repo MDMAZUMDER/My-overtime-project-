@@ -53,8 +53,8 @@ export default function SplashScreen() {
         transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
         className="mt-12 text-center relative z-10"
       >
-        <h1 className="text-4xl font-black text-white tracking-tighter">
-          OT
+        <h1 className="text-4xl font-black text-white tracking-tighter uppercase">
+          OverTime
         </h1>
         <div className="flex items-center justify-center space-x-2 mt-3">
           <div className="h-[1px] w-8 bg-white/30" />
