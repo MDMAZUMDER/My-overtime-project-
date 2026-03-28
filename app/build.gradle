@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.helloworld'
+    namespace 'com.ottracker.app'
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.example.helloworld"
+        applicationId "com.ottracker.app"
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
