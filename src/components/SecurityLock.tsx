@@ -1,46 +1,55 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Fingerprint, Lock, ShieldCheck, AlertCircle } from "lucide-react";
-import { StorageService } from "../services/storage";
+import { motion } from "motion/react";
+import { Lock, Fingerprint, ShieldAlert } from "lucide-react";
+import { NativeBiometric } from "capacitor-native-biometric";
 import { useStrings } from "../hooks/useStrings";
+import { Capacitor } from "@capacitor/core";
 
 export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
-  const settings = StorageService.getSettings();
   const STRINGS = useStrings();
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
-  const [mode, setMode] = useState<"biometric" | "pin">(settings.security.biometricEnabled ? "biometric" : "pin");
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handlePinInput = (num: string) => {
-    if (pin.length < 4) {
-      const newPin = pin + num;
-      setPin(newPin);
-      if (newPin.length === 4) {
-        if (newPin === settings.security.pin) {
+  const authenticate = async () => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
+    setError(null);
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const result = await NativeBiometric.isAvailable();
+        
+        if (result.isAvailable) {
+          await NativeBiometric.verifyIdentity({
+            reason: STRINGS.security.lockedMessageBiometric,
+            title: STRINGS.security.lockedTitle,
+            subtitle: STRINGS.security.lockedMessageBiometric,
+            description: "Please authenticate to continue",
+            useFallback: true, // This allows falling back to device passcode/pattern
+          });
           onUnlock();
         } else {
-          setError(true);
-          setTimeout(() => {
-            setPin("");
-            setError(false);
-          }, 1000);
+          // If biometrics not available, we might just have to unlock or show error
+          // Usually, if the user enabled it, it should be available.
+          setError("Biometric authentication not available on this device.");
         }
+      } else {
+        // Fallback for web/preview
+        setTimeout(() => {
+          onUnlock();
+        }, 1000);
       }
+    } catch (err: any) {
+      console.error("Authentication failed", err);
+      setError(err.message || "Authentication failed. Please try again.");
+    } finally {
+      setIsAuthenticating(false);
     }
-  };
-
-  const simulateBiometric = () => {
-    // Simulate biometric scan
-    setTimeout(() => {
-      onUnlock();
-    }, 1500);
   };
 
   useEffect(() => {
-    if (mode === "biometric") {
-      simulateBiometric();
-    }
-  }, [mode]);
+    authenticate();
+  }, []);
 
   return (
     <motion.div
@@ -55,68 +64,33 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
       
       <h2 className="text-2xl font-bold text-on-surface mb-2">{STRINGS.security.lockedTitle}</h2>
       <p className="text-on-surface-variant opacity-70 mb-12">
-        {mode === "biometric" ? STRINGS.security.lockedMessageBiometric : STRINGS.security.lockedMessagePin}
+        {error ? error : STRINGS.security.lockedMessageBiometric}
       </p>
 
-      {mode === "biometric" ? (
-        <div className="flex flex-col items-center space-y-8">
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center border-2 border-primary/20"
-          >
-            <Fingerprint className="w-12 h-12 text-primary" />
-          </motion.div>
-          <button
-            onClick={() => setMode("pin")}
-            className="text-primary font-bold text-sm uppercase tracking-wider"
-          >
-            {STRINGS.security.usePin}
-          </button>
-        </div>
-      ) : (
-        <div className="w-full max-w-xs space-y-8">
-          <div className="flex justify-center space-x-4">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
-                  error ? "bg-red-500 border-red-500" :
-                  pin.length > i ? "bg-primary border-primary" : "border-outline"
-                }`}
-              />
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "C"].map((btn, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  if (btn === "C") setPin("");
-                  else if (btn !== "") handlePinInput(btn);
-                }}
-                disabled={btn === ""}
-                className={`h-16 rounded-2xl flex items-center justify-center text-xl font-bold transition-all active:scale-90 ${
-                  btn === "" ? "opacity-0" : "bg-surface-variant/30 hover:bg-surface-variant/50 text-on-surface"
-                }`}
-              >
-                {btn}
-              </button>
-            ))}
-          </div>
-
-          {settings.security.biometricEnabled && (
-            <button
-              onClick={() => setMode("biometric")}
-              className="text-primary font-bold text-sm uppercase tracking-wider flex items-center justify-center space-x-2 mx-auto"
-            >
-              <Fingerprint className="w-4 h-4" />
-              <span>{STRINGS.security.useBiometric}</span>
-            </button>
+      <div className="flex flex-col items-center space-y-8">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={authenticate}
+          disabled={isAuthenticating}
+          className={`w-24 h-24 rounded-full flex items-center justify-center border-2 transition-all ${
+            error ? "bg-red-500/10 border-red-500/50" : "bg-primary/5 border-primary/20"
+          }`}
+        >
+          {error ? (
+            <ShieldAlert className="w-12 h-12 text-red-500" />
+          ) : (
+            <Fingerprint className={`w-12 h-12 text-primary ${isAuthenticating ? "animate-pulse" : ""}`} />
           )}
-        </div>
-      )}
+        </motion.button>
+        
+        <button
+          onClick={authenticate}
+          disabled={isAuthenticating}
+          className="text-primary font-bold text-sm uppercase tracking-wider"
+        >
+          {isAuthenticating ? "Authenticating..." : error ? "Try Again" : "Tap to Unlock"}
+        </button>
+      </div>
     </motion.div>
   );
 }

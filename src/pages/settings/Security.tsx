@@ -43,7 +43,10 @@ export default function SecuritySettings() {
 
         <div className="space-y-6 pt-6 border-t border-outline/10">
           <div className="flex items-center justify-between">
-            <p className="font-medium text-on-surface">{STRINGS.settings.appLock}</p>
+            <div className="text-left">
+              <p className="font-medium text-on-surface">{STRINGS.settings.appLock}</p>
+              <p className="text-xs text-on-surface-variant opacity-60">Use device fingerprint, face, or passcode</p>
+            </div>
             <button
               onClick={() => updateSettings({ enabled: !settings.security.enabled })}
               className={cn(
@@ -57,43 +60,6 @@ export default function SecuritySettings() {
               )} />
             </button>
           </div>
-
-          {settings.security.enabled && (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="font-medium text-on-surface">Biometric Unlock</p>
-                <button
-                  onClick={() => updateSettings({ biometricEnabled: !settings.security.biometricEnabled })}
-                  className={cn(
-                    "w-12 h-6 rounded-full transition-colors relative",
-                    settings.security.biometricEnabled ? "bg-primary" : "bg-outline/30"
-                  )}
-                >
-                  <div className={cn(
-                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                    settings.security.biometricEnabled ? "right-1" : "left-1"
-                  )} />
-                </button>
-              </div>
-
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium text-on-surface-variant ml-1">
-                  4-Digit PIN
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  value={settings.security.pin}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    if (val.length <= 4) updateSettings({ pin: val });
-                  }}
-                  className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center tracking-[1em] font-bold"
-                  placeholder="••••"
-                />
-              </div>
-            </>
-          )}
         </div>
       </div>
     </motion.div>

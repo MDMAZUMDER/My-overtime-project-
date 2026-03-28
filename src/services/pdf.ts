@@ -89,15 +89,13 @@ export class PDFService {
         const savedFile = await Filesystem.writeFile({
           path: filename,
           data: base64,
-          directory: Directory.Documents,
+          directory: Directory.Cache, // Use Cache for more reliable sharing on Android
         });
         
-        // On native, we might want to share it immediately or notify the user
-        // For now, let's just share it as it's the most common expectation for "download" on mobile
         await Share.share({
           title: 'Overtime Report',
           text: 'Your overtime report is ready.',
-          url: savedFile.uri,
+          files: [savedFile.uri], // Use 'files' array for actual file sharing
           dialogTitle: 'Save or Share Report',
         });
       } catch (error) {
@@ -120,13 +118,13 @@ export class PDFService {
         const savedFile = await Filesystem.writeFile({
           path: filename,
           data: base64,
-          directory: Directory.Cache, // Use Cache for temporary sharing
+          directory: Directory.Cache,
         });
 
         await Share.share({
           title: 'Overtime Report',
           text: 'My Overtime Report',
-          url: savedFile.uri,
+          files: [savedFile.uri], // Use 'files' array for actual file sharing
           dialogTitle: 'Share Overtime Report',
         });
       } catch (error) {

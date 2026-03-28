@@ -42,8 +42,6 @@ export interface AppSettings {
   };
   security: {
     enabled: boolean;
-    pin: string;
-    biometricEnabled: boolean;
   };
   appearance: {
     theme: Theme;
@@ -71,8 +69,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   security: {
     enabled: false,
-    pin: '1234',
-    biometricEnabled: false,
   },
   appearance: {
     theme: 'light',
