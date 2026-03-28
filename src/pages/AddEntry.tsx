@@ -111,11 +111,12 @@ export default function AddEntry() {
           <label className="text-sm font-medium text-on-surface-variant ml-1">
             {STRINGS.addEntry.noteLabel}
           </label>
-          <textarea
+          <input
+            type="text"
             placeholder={STRINGS.addEntry.notePlaceholder}
             value={entry.note}
             onChange={(e) => setEntry({ ...entry, note: e.target.value })}
-            className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all min-h-[60px] h-20"
+            className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
           />
         </div>
 
