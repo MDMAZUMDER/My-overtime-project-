@@ -1,10 +1,10 @@
 ext {
-    compileSdkVersion = 34
+    compileSdkVersion = 35
     minSdkVersion = 21
-    targetSdkVersion = 34
+    targetSdkVersion = 35
     
     // Dependencies versions
-    appCompatVersion = '1.6.1'
-    materialVersion = '1.11.0'
+    appCompatVersion = '1.7.0'
+    materialVersion = '1.12.0'
     constraintLayoutVersion = '2.1.4'
 }
