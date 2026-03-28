@@ -1,4 +1,4 @@
-rootProject.name = "HelloWorldApp"
+rootProject.name = "OT Tracker"
 include ':app'
 
 apply from: 'capacitor.settings.gradle'
