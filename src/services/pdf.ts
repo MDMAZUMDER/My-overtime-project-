@@ -83,6 +83,20 @@ export class PDFService {
     return { blob, filename };
   }
 
+  static async openPDF(blob: Blob, filename: string) {
+    if (Capacitor.isNativePlatform()) {
+      // On native, sharing is the best way to "open" as it lets user pick a viewer
+      await this.downloadPDF(blob, filename);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const newWindow = window.open(url, '_blank');
+      if (!newWindow) {
+        // Fallback to download if popup is blocked
+        this.downloadPDF(blob, filename);
+      }
+    }
+  }
+
   static async downloadPDF(blob: Blob, filename: string) {
     if (Capacitor.isNativePlatform()) {
       try {

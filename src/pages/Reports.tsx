@@ -61,7 +61,7 @@ export default function Reports() {
     }
   };
 
-  const handleExport = async (action: 'download' | 'share') => {
+  const handleExport = async (action: 'open' | 'share') => {
     if (filteredEntries.length === 0) return;
     setIsExporting(true);
     try {
@@ -69,8 +69,8 @@ export default function Reports() {
       const title = `${STRINGS.reports[activeTab as keyof typeof STRINGS.reports] || activeTab} ${STRINGS.reports.reportTitle}`;
       const { blob, filename } = await PDFService.generateReport(filteredEntries, profile, settings, title, STRINGS);
       
-      if (action === 'download') {
-        await PDFService.downloadPDF(blob, filename);
+      if (action === 'open') {
+        await PDFService.openPDF(blob, filename);
       } else {
         await PDFService.sharePDF(blob, filename);
       }
@@ -98,12 +98,12 @@ export default function Reports() {
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.reports}</h1>
         <div className="flex space-x-2">
           <button
-            onClick={() => handleExport('download')}
+            onClick={() => handleExport('open')}
             disabled={isExporting || filteredEntries.length === 0}
             className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
             title={STRINGS.reports.downloadPDF}
           >
-            {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+            {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
           </button>
           <button
             onClick={() => handleExport('share')}

@@ -50,7 +50,7 @@ export default function Logo({ className = "", iconSize = 24, showText = true, t
       {showText && (
         <div className="flex flex-col -space-y-1">
           <h1 className={`${textSize} font-black tracking-tighter text-on-surface flex items-center`}>
-            OT <span className="text-primary ml-1">TRACKER</span>
+            OT
           </h1>
           <p className="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant opacity-40 uppercase">
             Master Your Time

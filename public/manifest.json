@@ -1,6 +1,6 @@
 {
-  "name": "OT Tracker",
-  "short_name": "OT Tracker",
+  "name": "OT",
+  "short_name": "OT",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0a0502",

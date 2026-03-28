@@ -1,5 +1,5 @@
 {
-  "name": "OT Tracker",
+  "name": "OT",
   "description": "A modern mobile-first application to track overtime hours and earnings with an offline-first architecture.",
   "requestFramePermissions": ["notifications"]
 }
