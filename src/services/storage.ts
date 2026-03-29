@@ -13,7 +13,7 @@ export const StorageService = {
     
     const saved = JSON.parse(data);
     // Deep merge with defaults to ensure all keys exist
-    return {
+    const settings: AppSettings = {
       ...DEFAULT_SETTINGS,
       ...saved,
       notifications: { ...DEFAULT_SETTINGS.notifications, ...saved.notifications },
@@ -22,6 +22,7 @@ export const StorageService = {
       security: { ...DEFAULT_SETTINGS.security, ...saved.security },
       appearance: { ...DEFAULT_SETTINGS.appearance, ...saved.appearance },
     };
+    return settings;
   },
 
   saveSettings(settings: AppSettings) {

@@ -4,7 +4,7 @@ import { useStrings } from "../hooks/useStrings";
 import { cn } from "../lib/utils";
 import { StorageService } from "../services/storage";
 import { OvertimeEntry } from "../types/app";
-import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, DollarSign, Download, Share2, Loader2, Facebook } from "lucide-react";
+import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, Download, Share2, Loader2, Facebook } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { calculateTotalStats } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
@@ -12,7 +12,7 @@ import { PDFService } from "../services/pdf";
 export default function Reports() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("daily");
+  const [activeTab, setActiveTab] = useState("recent");
   const [entries, setEntries] = useState<OvertimeEntry[]>(StorageService.getEntries());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -30,9 +30,8 @@ export default function Reports() {
     const now = new Date();
     const sorted = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    if (activeTab === "daily") {
-      const today = now.toISOString().split('T')[0];
-      return sorted.filter(e => e.date === today);
+    if (activeTab === "recent") {
+      return sorted.slice(0, 4);
     }
 
     if (activeTab === "weekly") {
@@ -53,6 +52,10 @@ export default function Reports() {
   const stats = useMemo(() => {
     return calculateTotalStats(filteredEntries, settings);
   }, [filteredEntries, settings]);
+
+  const overallStats = useMemo(() => {
+    return calculateTotalStats(entries, settings);
+  }, [entries, settings]);
 
   const handleDelete = () => {
     if (deleteId) {
@@ -82,18 +85,14 @@ export default function Reports() {
   };
 
   const tabs = [
-    { id: "daily", label: STRINGS.reports.daily },
+    { id: "recent", label: STRINGS.reports.recent },
     { id: "weekly", label: STRINGS.reports.weekly },
     { id: "monthly", label: STRINGS.reports.monthly },
     { id: "all", label: STRINGS.reports.all },
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 pb-20"
-    >
+    <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.reports}</h1>
         <div className="flex space-x-2">
@@ -123,16 +122,16 @@ export default function Reports() {
           </div>
           <div>
             <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.dashboard.totalHours}</p>
-            <p className="text-sm font-bold text-on-surface">{stats.totalHours.toFixed(1)}h</p>
+            <p className="text-sm font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}h</p>
           </div>
         </div>
         <div className="bg-secondary/5 border border-secondary/10 p-4 rounded-2xl flex items-center space-x-3">
-          <div className="p-2 bg-secondary/10 rounded-xl">
-            <DollarSign className="w-4 h-4 text-secondary" />
+          <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
+            ﷼
           </div>
           <div>
             <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.otEarnings}</p>
-            <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {stats.totalEarnings.toFixed(2)}</p>
+            <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {overallStats.totalEarnings.toFixed(2)}</p>
           </div>
         </div>
         <div className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl flex items-center space-x-3">
@@ -150,7 +149,7 @@ export default function Reports() {
           </div>
           <div>
             <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.totalPayout}</p>
-            <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + stats.totalEarnings).toFixed(2)}</p>
+            <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -292,6 +291,6 @@ export default function Reports() {
           </div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

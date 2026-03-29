@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { AppSettings, Theme } from "../../types/app";
-import { Sun, Moon, Check } from "lucide-react";
+import { Sun, Moon, Monitor, Check } from "lucide-react";
 
 export default function AppearanceSettings() {
   const STRINGS = useStrings();
@@ -18,6 +18,7 @@ export default function AppearanceSettings() {
   const themes: { id: Theme; label: string; icon: typeof Sun }[] = [
     { id: "light", label: STRINGS.settings.light, icon: Sun },
     { id: "dark", label: STRINGS.settings.dark, icon: Moon },
+    { id: "system", label: STRINGS.settings.system, icon: Monitor },
   ];
 
   return (

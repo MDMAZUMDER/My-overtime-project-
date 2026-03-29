@@ -8,7 +8,8 @@ export const calculateHourlyRate = (settings: AppSettings): number => {
   const { basicSalary, workingDaysPerMonth, workingHoursPerDay } = settings.overtime;
   if (!basicSalary || !workingDaysPerMonth || !workingHoursPerDay) return 0;
   
-  return basicSalary / (workingDaysPerMonth * workingHoursPerDay);
+  // Basic hourly rate + 50% (1.5x)
+  return (basicSalary / (workingDaysPerMonth * workingHoursPerDay)) * 1.5;
 };
 
 export const calculateEntryEarnings = (entry: OvertimeEntry, hourlyRate: number): number => {

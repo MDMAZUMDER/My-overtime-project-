@@ -1,31 +1,78 @@
-import { motion } from "motion/react";
-import { User, Globe, Bell, DollarSign, Shield, Database, ChevronRight, Palette, Clock, Facebook } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { User, Globe, Bell, Shield, Database, ChevronRight, Clock, Sun, Moon, SunMoon } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { Link } from "react-router-dom";
-import Logo from "../components/Logo";
+import { StorageService } from "../services/storage";
+import { Theme } from "../types/app";
+
+const RiyalIcon = ({ className }: { className?: string }) => (
+  <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
+    ﷼
+  </div>
+);
 
 export default function Settings() {
   const STRINGS = useStrings();
+  const [settings, setSettings] = useState(StorageService.getSettings());
+
+  const toggleTheme = () => {
+    const themes: Theme[] = ["light", "dark", "system"];
+    const currentIndex = themes.indexOf(settings.appearance.theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    const nextTheme = themes[nextIndex];
+
+    const newSettings = {
+      ...settings,
+      appearance: { ...settings.appearance, theme: nextTheme }
+    };
+    setSettings(newSettings);
+    StorageService.saveSettings(newSettings);
+  };
+
+  const getThemeIcon = () => {
+    switch (settings.appearance.theme) {
+      case "light": return <Sun className="w-5 h-5" />;
+      case "dark": return <Moon className="w-5 h-5" />;
+      case "system": return <SunMoon className="w-5 h-5" />;
+      default: return <SunMoon className="w-5 h-5" />;
+    }
+  };
+
   const menuItems = [
     { icon: User, label: STRINGS.settings.profile, to: "/profile" },
     { icon: Globe, label: STRINGS.settings.language, to: "/settings/language" },
     { icon: Bell, label: STRINGS.settings.notifications, to: "/settings/notifications" },
-    { icon: DollarSign, label: STRINGS.settings.overtimeRate, to: "/settings/overtime" },
+    { icon: RiyalIcon, label: STRINGS.settings.overtimeRate, to: "/settings/overtime" },
     { icon: Clock, label: STRINGS.settings.timeFormat, to: "/settings/time-format" },
     { icon: Shield, label: STRINGS.settings.security, to: "/settings/security" },
     { icon: Database, label: STRINGS.settings.dataManagement, to: "/settings/data-management" },
-    { icon: Palette, label: STRINGS.settings.appearance, to: "/settings/appearance" },
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 pb-20"
-    >
+    <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.settings}</h1>
-        <Logo iconSize={16} showText={false} />
+        <button
+          onClick={toggleTheme}
+          className="p-3 bg-surface-variant/50 border border-outline/10 rounded-2xl text-primary hover:bg-primary/5 transition-all relative group"
+          title={settings.appearance.theme}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={settings.appearance.theme}
+              initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
+              transition={{ duration: 0.2 }}
+            >
+              {getThemeIcon()}
+            </motion.div>
+          </AnimatePresence>
+          <span className="absolute top-full right-0 mt-2 px-2 py-1 bg-surface border border-outline rounded-lg text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap shadow-xl">
+            {settings.appearance.theme}
+          </span>
+        </button>
       </header>
 
       <div className="bg-surface-variant/30 rounded-3xl border border-outline/10 overflow-hidden">
@@ -47,11 +94,11 @@ export default function Settings() {
       </div>
 
       <div className="text-center pt-8 pb-4 space-y-1">
-        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.1.1</p>
+        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.1.7</p>
         <p className="text-[10px] text-on-surface-variant opacity-40">
           {STRINGS.settings.developedBy} <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }

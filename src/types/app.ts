@@ -16,10 +16,10 @@ export interface OvertimeEntry {
 }
 
 export type Language = 'bn' | 'en' | 'ar';
-export type Currency = 'SAR' | 'BDT' | 'USD';
+export type Currency = 'SAR';
 export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY';
 export type WeekStart = 'Sunday' | 'Monday';
-export type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark' | 'system';
 
 export interface AppSettings {
   language: Language;
@@ -56,9 +56,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   overtime: {
     hourlyRate: 0,
-    currency: 'USD',
+    currency: 'SAR',
     basicSalary: 0,
-    workingDaysPerMonth: 26,
+    workingDaysPerMonth: 30,
     workingHoursPerDay: 8,
     useManualHourlyRate: false,
   },
@@ -71,6 +71,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     enabled: false,
   },
   appearance: {
-    theme: 'light',
+    theme: 'system',
   },
 };

@@ -63,11 +63,7 @@ export default function AddEntry() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <header className="flex items-center space-x-4">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-variant rounded-full">
           <ArrowLeft className="w-6 h-6" />
@@ -191,6 +187,6 @@ export default function AddEntry() {
           {STRINGS.addEntry.consistencyDesc}
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }

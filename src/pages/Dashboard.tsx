@@ -3,7 +3,7 @@ import { useStrings } from "../hooks/useStrings";
 import { useEffect, useState, useMemo } from "react";
 import { StorageService } from "../services/storage";
 import { UserProfile, OvertimeEntry } from "../types/app";
-import { User, TrendingUp, Clock, DollarSign, Calendar, Facebook } from "lucide-react";
+import { User, TrendingUp, Clock, Calendar, Facebook } from "lucide-react";
 import { Link } from "react-router-dom";
 import { calculateTotalStats, getRecentSummary } from "../lib/calculations";
 import Logo from "../components/Logo";
@@ -32,15 +32,13 @@ export default function Dashboard() {
   }, [entries, settings]);
 
   const recentEntries = useMemo(() => {
-    return getRecentSummary(entries, 7);
+    return [...entries]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 4);
   }, [entries]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 pb-20"
-    >
+    <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
         <Logo iconSize={16} textSize="text-lg" />
         <Link to="/profile" className="flex items-center space-x-2 bg-surface-variant/50 p-1 pr-3 rounded-full border border-outline/10">
@@ -81,8 +79,8 @@ export default function Dashboard() {
         </div>
         <div className="bg-secondary-container p-5 rounded-3xl shadow-sm space-y-2">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-secondary/10 rounded-xl">
-              <DollarSign className="w-4 h-4 text-secondary" />
+            <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
+              ﷼
             </div>
             <TrendingUp className="w-4 h-4 text-secondary opacity-40" />
           </div>
@@ -112,7 +110,7 @@ export default function Dashboard() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-on-surface">{STRINGS.dashboard.recent7Days}</h2>
+          <h2 className="text-lg font-bold text-on-surface">{STRINGS.dashboard.recentEntries}</h2>
           <Link to="/reports" className="text-xs font-bold text-primary uppercase tracking-wider">{STRINGS.dashboard.viewAll}</Link>
         </div>
         
@@ -157,6 +155,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

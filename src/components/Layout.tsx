@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import { useEffect, useState } from "react";
 import { StorageService } from "../services/storage";
@@ -8,6 +8,8 @@ import SecurityLock from "./SecurityLock";
 import NotificationManager from "./NotificationManager";
 
 export default function Layout() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const settings = StorageService.getSettings();
   const [theme, setTheme] = useState(settings.appearance.theme);
   const [hasUnlocked, setHasUnlocked] = useState(false);
@@ -15,10 +17,48 @@ export default function Layout() {
   const [showSplash, setShowSplash] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Force dashboard on initial load only once per session
+  useEffect(() => {
+    const hasRedirected = sessionStorage.getItem("initial_redirect_done");
+    if (!hasRedirected && location.pathname !== "/") {
+      navigate("/", { replace: true });
+      sessionStorage.setItem("initial_redirect_done", "true");
+    } else if (!hasRedirected) {
+      sessionStorage.setItem("initial_redirect_done", "true");
+    }
+  }, [navigate, location.pathname]);
+
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const applyTheme = (currentTheme: string) => {
+      let themeToApply = currentTheme;
+      if (currentTheme === "system") {
+        themeToApply = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+
+      if (themeToApply === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    applyTheme(theme);
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = () => {
+      if (theme === "system") {
+        applyTheme("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, [theme]);
 
   useEffect(() => {
     const handleSettingsChange = () => {
@@ -59,14 +99,6 @@ export default function Layout() {
     setIsLocked(false);
   };
 
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [theme]);
-
   return (
     <div className="min-h-screen bg-surface flex flex-col max-w-lg mx-auto shadow-xl relative overflow-hidden transition-colors duration-300">
       <AnimatePresence>
@@ -80,17 +112,7 @@ export default function Layout() {
         <>
           <NotificationManager />
           <main className="flex-1 overflow-y-auto pb-20 px-4 pt-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={window.location.pathname}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
+            <Outlet />
           </main>
           <BottomNav />
         </>

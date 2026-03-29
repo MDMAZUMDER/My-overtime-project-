@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
+import { Bell } from "lucide-react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { NotificationService } from "../../services/notification";
@@ -11,15 +12,23 @@ export default function NotificationSettings() {
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
 
+  const isSupported = NotificationService.isSupported();
+
   useEffect(() => {
+    if (!isSupported) {
+      setPermissionGranted(false);
+      return;
+    }
     const checkPermissions = async () => {
       const granted = await NotificationService.requestPermissions();
       setPermissionGranted(granted);
     };
     checkPermissions();
-  }, []);
+  }, [isSupported]);
 
   const updateSettings = async (updates: Partial<AppSettings['notifications']>) => {
+    if (!isSupported) return;
+
     const newSettings = {
       ...settings,
       notifications: { ...settings.notifications, ...updates }
@@ -48,7 +57,21 @@ export default function NotificationSettings() {
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.notifications}</h1>
       </header>
 
-      <div className="bg-surface-variant/30 rounded-3xl border border-outline/10 p-6 space-y-6">
+      {!isSupported && (
+        <div className="bg-error/10 border border-error/20 rounded-2xl p-4 flex items-start space-x-3">
+          <div className="p-2 bg-error/20 rounded-xl">
+            <Bell className="w-5 h-5 text-error" />
+          </div>
+          <p className="text-sm text-error font-medium pt-1">
+            {STRINGS.notifications.notSupported}
+          </p>
+        </div>
+      )}
+
+      <div className={cn(
+        "bg-surface-variant/30 rounded-3xl border border-outline/10 p-6 space-y-6",
+        !isSupported && "opacity-50 pointer-events-none"
+      )}>
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-on-surface">{STRINGS.settings.reminderEnabled}</p>
