@@ -46,6 +46,11 @@ export const StorageService = {
     return data ? JSON.parse(data) : [];
   },
 
+  saveEntries(entries: OvertimeEntry[]) {
+    localStorage.setItem(KEYS.ENTRIES, JSON.stringify(entries));
+    window.dispatchEvent(new Event("entriesChanged"));
+  },
+
   saveEntry(entry: OvertimeEntry) {
     const entries = this.getEntries();
     const index = entries.findIndex(e => e.id === entry.id);

@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - The unique identifier for the user
+    //   - email: string (required) - The user's email address
+    //   - displayName: string (optional) - The user's display name
+    //   - photoURL: string (optional) - The user's photo URL
+    //   - createdAt: timestamp (optional) - When the user was created
+    //
+    // Collection: entries
+    // Document ID: {entryId}
+    // Fields:
+    //   - id: string (required) - The unique identifier for the entry
+    //   - userId: string (required) - The ID of the user who created the entry
+    //   - userEmail: string (optional) - The email of the user who created the entry
+    //   - userName: string (optional) - The name of the user who created the entry
+    //   - date: string (required) - The date of the overtime
+    //   - startTime: string (optional) - The start time of the overtime
+    //   - endTime: string (optional) - The end time of the overtime
+    //   - duration: number (required) - The duration of the overtime in hours
+    //   - description: string (optional) - A description of the work performed
+    //   - status: string (required, enum: ['pending', 'approved', 'rejected']) - The status of the entry
+    //   - createdAt: timestamp (optional) - When the entry was created
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.fullName is string;
+    }
+
+    function isValidEntry(data) {
+      return data.id is string &&
+             data.date is string &&
+             data.hours is number &&
+             data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    // Check if user is admin of a specific company
+    function isAdmin(companyId) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/companies/$(companyId)).data.adminUid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /entries/{entryId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidEntry(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidEntry(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Company Data
+    match /companies/{companyId} {
+      // Anyone can read company basic info (for joining)
+      allow read: if isAuthenticated();
+      // Only the creator can create/update company info
+      allow create: if isAuthenticated() && request.resource.data.adminUid == request.auth.uid;
+      allow update: if isAdmin(companyId);
+      
+      // Company Entries
+      match /entries/{entryId} {
+        // Users can write to their company's entry collection
+        allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+        // Admins can read all entries in their company
+        allow read: if isAdmin(companyId) || (isAuthenticated() && resource.data.uid == request.auth.uid);
+        // Users can update/delete their own entries
+        allow update, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      }
+    }
+  }
+}

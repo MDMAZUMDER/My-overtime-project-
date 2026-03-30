@@ -6,6 +6,8 @@ import { OvertimeEntry } from "../types/app";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, TrendingUp, BarChart3 } from "lucide-react";
 import { calculateHourlyRate, getBarChartData } from "../lib/calculations";
+import { useFirebase } from "../components/FirebaseProvider";
+import { db, doc, setDoc, serverTimestamp, handleFirestoreError, OperationType } from "../firebase";
 import { 
   BarChart, 
   Bar, 
@@ -21,6 +23,7 @@ export default function AddEntry() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user, profile } = useFirebase();
   const settings = StorageService.getSettings();
   const hourlyRate = useMemo(() => calculateHourlyRate(settings), [settings]);
   const [entries, setEntries] = useState<OvertimeEntry[]>(StorageService.getEntries());
@@ -37,28 +40,55 @@ export default function AddEntry() {
 
   useEffect(() => {
     if (id) {
-      const existing = StorageService.getEntries().find(e => e.id === id);
-      if (existing) {
-        setEntry(existing);
+      const localEntries = StorageService.getEntries();
+      const found = localEntries.find(e => e.id === id);
+      if (found) {
+        setEntry(found);
       }
     }
   }, [id]);
 
-  const handleSave = (e: FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!entry.date || !entry.hours || entry.hours <= 0) {
       alert(STRINGS.addEntry.invalidInput);
       return;
     }
 
+    const entryId = id || crypto.randomUUID();
     const newEntry: OvertimeEntry = {
-      id: entry.id || crypto.randomUUID(),
+      id: entryId,
       date: entry.date,
       hours: Number(entry.hours),
       note: entry.note || "",
+      status: 'pending'
     };
 
     StorageService.saveEntry(newEntry);
+
+    // Sync to Firebase if user is logged in
+    if (user) {
+      const entryData = {
+        ...newEntry,
+        userId: user.uid,
+        userEmail: user.email,
+        userName: profile?.fullName,
+        updatedAt: serverTimestamp()
+      };
+
+      try {
+        // Save to user's private collection
+        await setDoc(doc(db, 'entries', newEntry.id), entryData);
+
+        // If connected to a company, sync to company collection as well
+        if (profile?.companyId) {
+          await setDoc(doc(db, 'companies', profile.companyId, 'entries', newEntry.id), entryData);
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `entries/${newEntry.id}`);
+      }
+    }
+
     navigate("/reports");
   };
 

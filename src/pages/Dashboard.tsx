@@ -15,16 +15,15 @@ export default function Dashboard() {
   const settings = StorageService.getSettings();
 
   useEffect(() => {
-    const handleProfileChange = () => setProfile(StorageService.getProfile());
     const handleEntriesChange = () => setEntries(StorageService.getEntries());
-    
-    window.addEventListener("profileChanged", handleProfileChange);
     window.addEventListener("entriesChanged", handleEntriesChange);
-    
-    return () => {
-      window.removeEventListener("profileChanged", handleProfileChange);
-      window.removeEventListener("entriesChanged", handleEntriesChange);
-    };
+    return () => window.removeEventListener("entriesChanged", handleEntriesChange);
+  }, []);
+
+  useEffect(() => {
+    const handleProfileChange = () => setProfile(StorageService.getProfile());
+    window.addEventListener("profileChanged", handleProfileChange);
+    return () => window.removeEventListener("profileChanged", handleProfileChange);
   }, []);
 
   const stats = useMemo(() => {

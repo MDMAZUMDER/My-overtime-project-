@@ -19,9 +19,7 @@ export default function Reports() {
   const settings = StorageService.getSettings();
 
   useEffect(() => {
-    const handleEntriesChange = () => {
-      setEntries(StorageService.getEntries());
-    };
+    const handleEntriesChange = () => setEntries(StorageService.getEntries());
     window.addEventListener("entriesChanged", handleEntriesChange);
     return () => window.removeEventListener("entriesChanged", handleEntriesChange);
   }, []);
@@ -201,6 +199,19 @@ export default function Reports() {
                       <span className="mx-2 opacity-30">|</span>
                       <TrendingUp className="w-3 h-3 mr-1 text-primary" />
                       <span className="text-primary font-medium">{settings.overtime.currency} {(entry.hours * stats.hourlyRate).toFixed(2)}</span>
+                      {entry.status && (
+                        <>
+                          <span className="mx-2 opacity-30">|</span>
+                          <span className={cn(
+                            "font-bold",
+                            entry.status === 'approved' ? "text-green-500" :
+                            entry.status === 'rejected' ? "text-red-500" :
+                            "text-yellow-500"
+                          )}>
+                            {entry.status === 'approved' ? 'অনুমোদিত' : entry.status === 'rejected' ? 'প্রত্যাখ্যাত' : 'অপেক্ষমান'}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

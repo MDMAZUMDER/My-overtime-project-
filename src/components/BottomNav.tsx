@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 
 export default function BottomNav() {
   const STRINGS = useStrings();
+  
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: STRINGS.tabs.dashboard },
     { to: "/add", icon: PlusCircle, label: STRINGS.tabs.addEntry },

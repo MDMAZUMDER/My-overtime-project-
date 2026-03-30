@@ -6,6 +6,8 @@ export interface UserProfile {
   designation?: string;
   joinDate?: string;
   profilePhoto?: string; // Base64 string
+  companyId?: string;
+  role?: 'admin' | 'user';
 }
 
 export interface OvertimeEntry {
@@ -13,6 +15,7 @@ export interface OvertimeEntry {
   date: string; // ISO string (YYYY-MM-DD)
   hours: number;
   note?: string;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export type Language = 'bn' | 'en' | 'ar';

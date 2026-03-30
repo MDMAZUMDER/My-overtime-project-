@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "description": "The user's full name" },
+        "email": { "type": "string", "format": "email", "description": "The user's email address" },
+        "companyId": { "type": "string", "description": "The ID of the company the user belongs to" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "The user's role" }
+      },
+      "required": ["fullName"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "A company that tracks employee overtime",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the company" },
+        "adminUid": { "type": "string", "description": "The UID of the company admin" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the company was created" }
+      },
+      "required": ["name", "adminUid"]
+    },
+    "OvertimeEntry": {
+      "title": "OvertimeEntry",
+      "description": "An individual overtime entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique identifier for the entry" },
+        "userId": { "type": "string", "description": "The ID of the user who created the entry" },
+        "userEmail": { "type": "string", "format": "email", "description": "The email of the user who created the entry" },
+        "userName": { "type": "string", "description": "The name of the user who created the entry" },
+        "date": { "type": "string", "format": "date", "description": "The date of the overtime" },
+        "startTime": { "type": "string", "description": "The start time of the overtime" },
+        "endTime": { "type": "string", "description": "The end time of the overtime" },
+        "duration": { "type": "number", "description": "The duration of the overtime in hours" },
+        "description": { "type": "string", "description": "A description of the work performed" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "The status of the entry" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the entry was created" }
+      },
+      "required": ["id", "userId", "date", "duration", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/companies/{companyId}": {
+      "schema": "Company",
+      "description": "Company data"
+    },
+    "/companies/{companyId}/entries/{entryId}": {
+      "schema": "OvertimeEntry",
+      "description": "Company-scoped overtime entries"
+    }
+  }
+}
