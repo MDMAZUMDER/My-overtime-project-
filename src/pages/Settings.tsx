@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { User, Globe, Bell, Shield, Database, ChevronRight, Clock, Sun, Moon, SunMoon } from "lucide-react";
+import { User, Globe, Bell, Shield, Database, ChevronRight, Clock, Sun, Moon, SunMoon, ArrowLeft } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { StorageService } from "../services/storage";
 import { Theme } from "../types/app";
 
@@ -14,6 +14,7 @@ const RiyalIcon = ({ className }: { className?: string }) => (
 
 export default function Settings() {
   const STRINGS = useStrings();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState(StorageService.getSettings());
 
   const toggleTheme = () => {
@@ -52,7 +53,12 @@ export default function Settings() {
   return (
     <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.settings}</h1>
+        <div className="flex items-center space-x-4">
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.settings}</h1>
+        </div>
         <button
           onClick={toggleTheme}
           className="p-3 bg-surface-variant/50 border border-outline/10 rounded-2xl text-primary hover:bg-primary/5 transition-all relative group"
@@ -94,7 +100,7 @@ export default function Settings() {
       </div>
 
       <div className="text-center pt-8 pb-4 space-y-1">
-        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.1.7</p>
+        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.2.0</p>
         <p className="text-[10px] text-on-surface-variant opacity-40">
           {STRINGS.settings.developedBy} <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
         </p>

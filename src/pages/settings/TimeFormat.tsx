@@ -4,9 +4,12 @@ import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { AppSettings, DateFormat, WeekStart } from "../../types/app";
 import { cn } from "../../lib/utils";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function TimeFormatSettings() {
   const STRINGS = useStrings();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
 
   const updateSettings = (updates: Partial<AppSettings['timeFormat']>) => {
@@ -27,7 +30,10 @@ export default function TimeFormatSettings() {
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6"
     >
-      <header>
+      <header className="flex items-center space-x-4">
+        <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.timeFormat}</h1>
       </header>
 

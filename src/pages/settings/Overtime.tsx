@@ -3,14 +3,15 @@ import { motion } from "motion/react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { AppSettings, Currency } from "../../types/app";
-import { Info, CheckCircle2, AlertCircle } from "lucide-react";
+import { Info, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
 import { calculateHourlyRate } from "../../lib/calculations";
+import { useNavigate } from "react-router-dom";
 
 export default function OvertimeSettings() {
   const STRINGS = useStrings();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
-
-  const activeRate = useMemo(() => calculateHourlyRate(settings), [settings]);
+  const [activeRate, setActiveRate] = useState(calculateHourlyRate(settings));
 
   const updateSettings = (updates: Partial<AppSettings['overtime']>) => {
     const newSettings = {
@@ -19,6 +20,7 @@ export default function OvertimeSettings() {
     };
     setSettings(newSettings);
     StorageService.saveSettings(newSettings);
+    setActiveRate(calculateHourlyRate(newSettings));
   };
 
   const currencies: Currency[] = ["SAR"];
@@ -29,9 +31,14 @@ export default function OvertimeSettings() {
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6 pb-10"
     >
-      <header>
-        <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.overtimeRate}</h1>
-        <p className="text-sm text-on-surface-variant opacity-70">{STRINGS.settings.overtimeRateDescription}</p>
+      <header className="flex items-center space-x-4">
+        <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.overtimeRate}</h1>
+          <p className="text-sm text-on-surface-variant opacity-70">{STRINGS.settings.overtimeRateDescription}</p>
+        </div>
       </header>
 
       <div className="bg-surface-variant/30 rounded-3xl border border-outline/10 p-6 space-y-6">

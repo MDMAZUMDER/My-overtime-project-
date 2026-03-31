@@ -4,7 +4,7 @@ import { useStrings } from "../hooks/useStrings";
 import { cn } from "../lib/utils";
 import { StorageService } from "../services/storage";
 import { OvertimeEntry } from "../types/app";
-import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, Download, Share2, Loader2, Facebook } from "lucide-react";
+import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, Download, Share2, Loader2, Facebook, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { calculateTotalStats } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
@@ -92,7 +92,12 @@ export default function Reports() {
   return (
     <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.reports}</h1>
+        <div className="flex items-center space-x-4">
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.reports}</h1>
+        </div>
         <div className="flex space-x-2">
           <button
             onClick={() => handleExport('open')}

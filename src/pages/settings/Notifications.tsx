@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Bell } from "lucide-react";
+import { Bell, ArrowLeft } from "lucide-react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { NotificationService } from "../../services/notification";
 import { AppSettings } from "../../types/app";
 import { cn } from "../../lib/utils";
+import { useNavigate } from "react-router-dom";
 
 export default function NotificationSettings() {
   const STRINGS = useStrings();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
 
@@ -53,7 +55,10 @@ export default function NotificationSettings() {
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6"
     >
-      <header>
+      <header className="flex items-center space-x-4">
+        <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.notifications}</h1>
       </header>
 

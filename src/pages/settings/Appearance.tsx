@@ -3,10 +3,12 @@ import { motion } from "motion/react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { AppSettings, Theme } from "../../types/app";
-import { Sun, Moon, Monitor, Check } from "lucide-react";
+import { Sun, Moon, Monitor, Check, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function AppearanceSettings() {
   const STRINGS = useStrings();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
 
   const handleSelect = (theme: Theme) => {
@@ -27,7 +29,10 @@ export default function AppearanceSettings() {
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6"
     >
-      <header>
+      <header className="flex items-center space-x-4">
+        <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.settings.appearance}</h1>
       </header>
 
