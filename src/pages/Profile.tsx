@@ -57,13 +57,32 @@ export default function Profile() {
   }, [firebaseProfile, user?.uid]);
 
   useEffect(() => {
+    let isMounted = true;
+    let currentScanner: Html5Qrcode | null = null;
+
     if (showQrView && qrTab === 'scan' && connectionStatus === 'idle') {
       const startScanner = async () => {
         try {
-          const html5QrCode = new Html5Qrcode("reader");
-          html5QrCodeRef.current = html5QrCode;
+          // Ensure the element exists before starting
+          const readerElement = document.getElementById("reader");
+          if (!readerElement) return;
+
+          // If there's an existing scanner, try to stop it first
+          if (html5QrCodeRef.current) {
+            try {
+              const state = (html5QrCodeRef.current as any).getState();
+              if (state === 2 || state === 3) {
+                await html5QrCodeRef.current.stop();
+              }
+            } catch (e) {
+              console.warn("Error stopping previous scanner", e);
+            }
+          }
+
+          currentScanner = new Html5Qrcode("reader");
+          html5QrCodeRef.current = currentScanner;
           
-          await html5QrCode.start(
+          await currentScanner.start(
             { facingMode: "environment" },
             {
               fps: 10,
@@ -73,6 +92,7 @@ export default function Profile() {
             onScanFailure
           );
         } catch (err: any) {
+          if (!isMounted) return;
           console.error("Error starting scanner", err);
           setConnectionStatus('error');
           if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -83,28 +103,25 @@ export default function Profile() {
         }
       };
 
-      const timer = setTimeout(startScanner, 100);
+      // Small delay to ensure DOM is ready and previous instances are cleared
+      const timer = setTimeout(startScanner, 300);
       
       return () => {
+        isMounted = false;
         clearTimeout(timer);
-        const scanner = html5QrCodeRef.current;
-        if (scanner) {
+        if (currentScanner) {
           const stopScanner = async () => {
             try {
-              // Check if scanner is running before attempting to stop
-              // Html5QrcodeScannerState.SCANNING = 2, PAUSED = 3
-              const state = (scanner as any).getState();
+              const state = (currentScanner as any).getState();
               if (state === 2 || state === 3) {
-                await scanner.stop();
+                await currentScanner.stop();
               }
             } catch (err) {
-              // Ignore "scanner is not running" errors
-              const errorMsg = err instanceof Error ? err.message : String(err);
-              if (!errorMsg.includes("not running") && !errorMsg.includes("not started")) {
-                console.error("Failed to stop scanner", err);
-              }
+              // Ignore cleanup errors
             } finally {
-              html5QrCodeRef.current = null;
+              if (html5QrCodeRef.current === currentScanner) {
+                html5QrCodeRef.current = null;
+              }
             }
           };
           stopScanner();
@@ -594,12 +611,6 @@ export default function Profile() {
                           <p className="text-lg font-mono font-bold text-on-surface tracking-widest">
                             {profile.employeeId || user?.uid}
                           </p>
-                          <button 
-                            onClick={handleCopyId}
-                            className="p-1.5 hover:bg-on-surface/5 rounded-full text-primary transition-colors"
-                          >
-                            {copied ? <CheckCircle2 className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4 opacity-40" />}
-                          </button>
                         </div>
                       </div>
                     </div>
