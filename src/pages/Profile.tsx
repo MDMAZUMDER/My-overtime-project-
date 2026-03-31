@@ -79,29 +79,55 @@ export default function Profile() {
           currentScanner = new Html5Qrcode("reader");
           html5QrCodeRef.current = currentScanner;
           
-          await currentScanner.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-            },
-            onScanSuccess,
-            onScanFailure
-          );
+          // Try to get cameras first to see if any are available
+          const cameras = await Html5Qrcode.getCameras().catch(() => []);
+          
+          if (cameras && cameras.length > 0) {
+            // Prefer back camera if available
+            const backCamera = cameras.find(cam => 
+              cam.label.toLowerCase().includes('back') || 
+              cam.label.toLowerCase().includes('rear') ||
+              cam.label.toLowerCase().includes('environment')
+            );
+            
+            const cameraId = backCamera ? backCamera.id : cameras[0].id;
+            
+            await currentScanner.start(
+              cameraId,
+              {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+              },
+              onScanSuccess,
+              onScanFailure
+            );
+          } else {
+            // Fallback to facingMode if getCameras fails or returns empty
+            await currentScanner.start(
+              { facingMode: "environment" },
+              {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+              },
+              onScanSuccess,
+              onScanFailure
+            );
+          }
         } catch (err: any) {
           if (!isMounted) return;
           console.error("Error starting scanner", err);
           setConnectionStatus('error');
           if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            setErrorMessage("Camera access was denied. Please enable camera permissions in your browser settings to scan QR codes.");
+            setErrorMessage(STRINGS.profile.cameraPermissionDenied);
           } else {
-            setErrorMessage("Failed to start the camera. Please ensure no other app is using it and try again.");
+            setErrorMessage(STRINGS.profile.cameraStartFailed);
           }
         }
       };
 
-      // Small delay to ensure DOM is ready and previous instances are cleared
-      const timer = setTimeout(startScanner, 300);
+      // Increased delay to ensure DOM is ready and previous instances are cleared
+      const timer = setTimeout(startScanner, 500);
       
       return () => {
         isMounted = false;
@@ -166,7 +192,7 @@ export default function Profile() {
         }, 2000);
       } else {
         setConnectionStatus('error');
-        setErrorMessage("This company ID was not found.");
+        setErrorMessage(STRINGS.profile.companyNotFound);
         setTimeout(() => {
           setConnectionStatus('idle');
           setErrorMessage(null);
@@ -175,7 +201,7 @@ export default function Profile() {
     } catch (error) {
       console.error('Error connecting to company:', error);
       setConnectionStatus('error');
-      setErrorMessage("An error occurred while connecting.");
+      setErrorMessage(STRINGS.profile.connectionError);
       setTimeout(() => {
         setConnectionStatus('idle');
         setErrorMessage(null);
@@ -200,9 +226,9 @@ export default function Profile() {
       console.error("Error scanning file", err);
       setConnectionStatus('error');
       if (err?.toString().includes("No MultiFormat Readers")) {
-        setErrorMessage("Could not find QR code in this image. Please try a clearer photo.");
+        setErrorMessage(STRINGS.profile.noQrFound);
       } else {
-        setErrorMessage("Failed to read the image file.");
+        setErrorMessage(STRINGS.profile.fileReadFailed);
       }
       setTimeout(() => {
         setConnectionStatus('idle');
@@ -552,7 +578,7 @@ export default function Profile() {
                     <X className="w-5 h-5" />
                   </button>
                   <h2 className="text-base font-bold text-gray-800">
-                    {qrTab === 'my' ? "My QR Code" : "Scan Code"}
+                    {qrTab === 'my' ? STRINGS.profile.myQr : STRINGS.profile.scanCode}
                   </h2>
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -564,7 +590,7 @@ export default function Profile() {
                         : 'text-gray-500'
                     }`}
                   >
-                    My
+                    {STRINGS.profile.myCode}
                   </button>
                   <button
                     onClick={() => setQrTab('scan')}
@@ -574,7 +600,7 @@ export default function Profile() {
                         : 'text-gray-500'
                     }`}
                   >
-                    Scan
+                    {STRINGS.profile.scanCode}
                   </button>
                 </div>
               </div>
@@ -660,7 +686,7 @@ export default function Profile() {
                           {connectionStatus === 'connecting' && (
                             <div className="space-y-4">
                               <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-                              <p className="text-white font-bold text-xs">Connecting...</p>
+                              <p className="text-white font-bold text-xs">{STRINGS.profile.connecting}</p>
                             </div>
                           )}
                           {connectionStatus === 'success' && (
@@ -668,7 +694,7 @@ export default function Profile() {
                               <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                                 <CheckCircle2 className="w-6 h-6 text-green-500" />
                               </div>
-                              <p className="text-white font-bold text-sm">Connected!</p>
+                              <p className="text-white font-bold text-sm">{STRINGS.profile.connected}</p>
                             </div>
                           )}
                           {connectionStatus === 'error' && (
@@ -681,7 +707,7 @@ export default function Profile() {
                                 onClick={() => setConnectionStatus('idle')}
                                 className="px-4 py-2 bg-white text-black rounded-full text-[10px] font-bold"
                               >
-                                Try Again
+                                {STRINGS.profile.tryAgain}
                               </button>
                             </div>
                           )}
@@ -690,14 +716,14 @@ export default function Profile() {
                     </div>
                     
                     <div className="w-full space-y-3">
-                      <p className="text-center text-gray-400 font-bold text-xs uppercase tracking-wider">Scan Company QR</p>
+                      <p className="text-center text-gray-400 font-bold text-xs uppercase tracking-wider">{STRINGS.profile.scanCompanyQr}</p>
                       
                       <button
                         onClick={() => document.getElementById('gallery-input')?.click()}
                         className="w-full flex items-center justify-center space-x-2 py-3.5 bg-gray-100 rounded-xl text-gray-700 font-bold text-sm"
                       >
                         <ImageIcon className="w-4 h-4 text-primary" />
-                        <span>Scan from Gallery</span>
+                        <span>{STRINGS.profile.scanFromGallery}</span>
                       </button>
                       
                       <input
