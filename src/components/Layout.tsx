@@ -20,13 +20,13 @@ export default function Layout() {
   // Force dashboard on initial load only once per session
   useEffect(() => {
     const hasRedirected = sessionStorage.getItem("initial_redirect_done");
-    if (!hasRedirected && location.pathname !== "/") {
-      navigate("/", { replace: true });
+    if (!hasRedirected) {
       sessionStorage.setItem("initial_redirect_done", "true");
-    } else if (!hasRedirected) {
-      sessionStorage.setItem("initial_redirect_done", "true");
+      if (location.pathname !== "/") {
+        navigate("/", { replace: true });
+      }
     }
-  }, [navigate, location.pathname]);
+  }, [navigate]); // Only run once on mount
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2500);

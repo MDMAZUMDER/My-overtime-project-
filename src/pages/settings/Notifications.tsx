@@ -13,6 +13,7 @@ export default function NotificationSettings() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
+  const [localMessage, setLocalMessage] = useState(settings.notifications.reminderMessage || "");
 
   const isSupported = NotificationService.isSupported();
 
@@ -28,15 +29,32 @@ export default function NotificationSettings() {
     checkPermissions();
   }, [isSupported]);
 
-  const updateSettings = async (updates: Partial<AppSettings['notifications']>) => {
-    if (!isSupported) return;
+  // Debounce notification scheduling for the custom message
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localMessage !== settings.notifications.reminderMessage) {
+        setSettings(prev => {
+          const newSettings = {
+            ...prev,
+            notifications: { ...prev.notifications, reminderMessage: localMessage }
+          };
+          StorageService.saveSettings(newSettings);
+          NotificationService.scheduleReminder(newSettings.notifications, STRINGS);
+          return newSettings;
+        });
+      }
+    }, 500);
 
+    return () => clearTimeout(timer);
+  }, [localMessage, settings.notifications.reminderMessage, STRINGS]);
+
+  const updateSettings = async (updates: Partial<AppSettings['notifications']>) => {
     const newSettings = {
       ...settings,
       notifications: { ...settings.notifications, ...updates }
     };
     
-    if (updates.enabled && !permissionGranted) {
+    if (updates.enabled && !permissionGranted && isSupported) {
       const granted = await NotificationService.requestPermissions();
       setPermissionGranted(granted);
       if (!granted) return;
@@ -46,14 +64,16 @@ export default function NotificationSettings() {
     StorageService.saveSettings(newSettings);
     
     // Schedule or cancel notification
-    await NotificationService.scheduleReminder(newSettings.notifications, STRINGS);
+    if (isSupported) {
+      await NotificationService.scheduleReminder(newSettings.notifications, STRINGS);
+    }
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="space-y-6"
+      className="space-y-6 pb-10"
     >
       <header className="flex items-center space-x-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
@@ -63,50 +83,86 @@ export default function NotificationSettings() {
       </header>
 
       {!isSupported && (
-        <div className="bg-error/10 border border-error/20 rounded-2xl p-4 flex items-start space-x-3">
-          <div className="p-2 bg-error/20 rounded-xl">
-            <Bell className="w-5 h-5 text-error" />
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start space-x-3">
+          <div className="p-2 bg-amber-500/20 rounded-xl">
+            <Bell className="w-5 h-5 text-amber-500" />
           </div>
-          <p className="text-sm text-error font-medium pt-1">
-            {STRINGS.notifications.notSupported}
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-amber-600 font-bold">
+              {STRINGS.notifications.notSupported}
+            </p>
+            <p className="text-[10px] text-amber-600/70 leading-tight">
+              You can still configure your message here. It will work on devices that support notifications.
+            </p>
+          </div>
         </div>
       )}
 
       <div className={cn(
-        "bg-surface-variant/30 rounded-3xl border border-outline/10 p-6 space-y-6",
-        !isSupported && "opacity-50 pointer-events-none"
+        "bg-surface-variant/30 rounded-[2.5rem] border border-outline/10 p-8 space-y-8",
+        !isSupported && "opacity-80"
       )}>
         <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-on-surface">{STRINGS.settings.reminderEnabled}</p>
-            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.notifications.reminderDescription}</p>
+          <div className="space-y-1">
+            <p className="font-bold text-on-surface text-lg">{STRINGS.settings.reminderEnabled}</p>
+            <p className="text-xs text-on-surface-variant opacity-60 leading-relaxed">{STRINGS.notifications.reminderDescription}</p>
           </div>
           <button
             onClick={() => updateSettings({ enabled: !settings.notifications.enabled })}
             className={cn(
-              "w-12 h-6 rounded-full transition-colors relative",
-              settings.notifications.enabled ? "bg-primary" : "bg-outline/30"
+              "w-14 h-7 rounded-full transition-all duration-300 relative p-1",
+              settings.notifications.enabled ? "bg-primary shadow-lg shadow-primary/20" : "bg-outline/20"
             )}
           >
             <div className={cn(
-              "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-              settings.notifications.enabled ? (STRINGS.common.arabic === "العربية (Arabic)" ? "left-1" : "right-1") : (STRINGS.common.arabic === "العربية (Arabic)" ? "right-1" : "left-1")
+              "w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm",
+              settings.notifications.enabled 
+                ? (STRINGS.common.arabic === "العربية (Arabic)" ? "translate-x-0" : "translate-x-7") 
+                : (STRINGS.common.arabic === "العربية (Arabic)" ? "translate-x-7" : "translate-x-0")
             )} />
           </button>
         </div>
 
         {settings.notifications.enabled && (
-          <div className="space-y-2 pt-4 border-t border-outline/10">
-            <label className="text-sm font-medium text-on-surface-variant ml-1">
-              {STRINGS.settings.reminderTime}
-            </label>
-            <input
-              type="time"
-              value={settings.notifications.time}
-              onChange={(e) => updateSettings({ time: e.target.value })}
-              className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-            />
+          <div className="space-y-8 pt-6 border-t border-outline/10">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">
+                {STRINGS.settings.reminderTime}
+              </label>
+              <div className="relative group">
+                <input
+                  type="time"
+                  value={settings.notifications.time}
+                  onChange={(e) => updateSettings({ time: e.target.value })}
+                  className="w-full bg-surface/50 border border-outline/20 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-bold text-on-surface text-xl"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">
+                {STRINGS.settings.reminderCustomMessage}
+              </label>
+              <div className="relative">
+                <textarea
+                  value={localMessage}
+                  onChange={(e) => setLocalMessage(e.target.value)}
+                  placeholder={STRINGS.settings.reminderCustomMessagePlaceholder}
+                  rows={3}
+                  maxLength={100}
+                  className="w-full bg-surface/50 border-2 border-outline/20 rounded-[2rem] px-8 py-7 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all resize-none text-2xl text-on-surface leading-tight font-black placeholder:font-medium placeholder:opacity-20"
+                />
+                <div className="absolute bottom-6 right-8 text-[12px] text-outline/40 font-black bg-surface/90 px-3 py-1.5 rounded-xl backdrop-blur-md border border-outline/10">
+                  {localMessage.length} / 100
+                </div>
+              </div>
+              <div className="flex items-start space-x-3 px-2">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 shrink-0" />
+                <p className="text-[11px] text-on-surface-variant opacity-60 leading-relaxed font-medium italic">
+                  Your custom message will be displayed as the main heading of your daily reminder.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

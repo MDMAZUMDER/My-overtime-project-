@@ -29,6 +29,7 @@ export interface AppSettings {
   notifications: {
     enabled: boolean;
     time: string; // HH:mm
+    reminderMessage?: string;
   };
   overtime: {
     hourlyRate: number;
@@ -56,6 +57,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   notifications: {
     enabled: false,
     time: '20:00',
+    reminderMessage: '',
   },
   overtime: {
     hourlyRate: 0,
