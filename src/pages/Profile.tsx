@@ -4,6 +4,7 @@ import { Camera, Save, User, IdCard, Briefcase, Calendar, MapPin, Building2, QrC
 import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
 import { UserProfile } from "../types/app";
+import { cn } from "../lib/utils";
 import { useFirebase } from "../components/FirebaseProvider";
 import { db, doc, setDoc, getDoc, handleFirestoreError, OperationType } from "../firebase";
 import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
@@ -29,6 +30,7 @@ export default function Profile() {
   const [qrTab, setQrTab] = useState<'my' | 'scan'>('my');
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,13 @@ export default function Profile() {
       setIsEditing(true);
     }
   }, [firebaseProfile, user?.uid]);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     let isMounted = true;
@@ -287,18 +296,181 @@ export default function Profile() {
     }
   };
 
-  const handleDownloadQr = () => {
+  const handleDownloadQr = async () => {
+    if (!qrRef.current) return;
+    const qrCanvas = qrRef.current.querySelector('canvas');
+    if (!qrCanvas) return;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set dimensions for high quality (1080x1350)
+    const width = 1080;
+    const height = 1350;
+    canvas.width = width;
+    canvas.height = height;
+
+    // 1. Main Background
+    ctx.fillStyle = '#0b141a';
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Card Background
+    const cardPadding = 80;
+    const cardWidth = width - (cardPadding * 2);
+    const cardHeight = 900;
+    const cardY = 180;
+    
+    ctx.fillStyle = '#111b21';
+    const radius = 40;
+    ctx.beginPath();
+    ctx.roundRect(cardPadding, cardY, cardWidth, cardHeight, radius);
+    ctx.fill();
+
+    // 3. Profile Picture (Circular)
+    const profileSize = 200;
+    const profileY = cardY - (profileSize / 2);
+    
+    // Draw background circle for profile pic border
+    ctx.beginPath();
+    ctx.arc(width / 2, profileY + (profileSize / 2), (profileSize / 2) + 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#0b141a';
+    ctx.fill();
+
+    if (profile.profilePhoto) {
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = profile.profilePhoto;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(width / 2, profileY + (profileSize / 2), profileSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(img, (width / 2) - (profileSize / 2), profileY, profileSize, profileSize);
+        ctx.restore();
+      } catch (e) {
+        // Fallback if image fails
+        ctx.fillStyle = '#2a3942';
+        ctx.beginPath();
+        ctx.arc(width / 2, profileY + (profileSize / 2), profileSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = '#2a3942';
+      ctx.beginPath();
+      ctx.arc(width / 2, profileY + (profileSize / 2), profileSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 4. Name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 60px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(profile.fullName || "User", width / 2, cardY + 160);
+
+    // 5. Subtitle (Designation or Company)
+    ctx.fillStyle = '#8696a0';
+    ctx.font = '40px Inter, sans-serif';
+    ctx.fillText(profile.designation || profile.companyName || "Overtime Master User", width / 2, cardY + 220);
+
+    // 6. QR Code
+    const qrSize = 500;
+    const qrX = (width / 2) - (qrSize / 2);
+    const qrY = cardY + 300;
+    
+    // White background for QR
+    const qrRadius = 40;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, qrRadius);
+    ctx.fill();
+    
+    ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+    // 7. Footer Text
+    ctx.fillStyle = '#8696a0';
+    ctx.font = '36px Inter, sans-serif';
+    const footerY = cardY + cardHeight + 100;
+    const footerText = STRINGS.profile.qrPrivateDesc;
+    
+    // Wrap text
+    const maxWidth = width - 200;
+    const words = footerText.split(' ');
+    let line = '';
+    let y = footerY;
+    const lineHeight = 50;
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        ctx.fillText(line, width / 2, y);
+        line = words[n] + ' ';
+        y += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, width / 2, y);
+
+    // 8. Download
+    try {
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `QR_Card_${profile.fullName || "User"}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
+    } catch (err) {
+      console.error("Download failed", err);
+      setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
+    }
+  };
+
+  const handleShareQr = async () => {
     if (!qrRef.current) return;
     const canvas = qrRef.current.querySelector('canvas');
     if (!canvas) return;
 
-    const url = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `QR_${profile.fullName || "User"}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const shareText = `Connect with me on Overtime Master. ID: ${profile.employeeId || user?.uid}`;
+    const shareUrl = window.location.href;
+
+    try {
+      // Try to share as file if supported
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve));
+      if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'qr.png', { type: 'image/png' })] })) {
+        const file = new File([blob], `QR_${profile.fullName || "User"}.png`, { type: 'image/png' });
+        await navigator.share({
+          files: [file],
+          title: 'My Profile QR',
+          text: shareText,
+        });
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'My Profile QR',
+          text: shareText,
+          url: shareUrl
+        });
+      } else {
+        throw new Error('Share not supported');
+      }
+    } catch (err) {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setToast({ message: STRINGS.profile.linkCopied, type: 'success' });
+      } catch (copyErr) {
+        setToast({ message: STRINGS.profile.shareFailed, type: 'error' });
+      }
+    }
   };
 
   const ProfileField = ({ 
@@ -627,6 +799,12 @@ export default function Profile() {
                           size={180}
                           level="H"
                           includeMargin={false}
+                          imageSettings={{
+                            src: "/icon.svg",
+                            height: 34,
+                            width: 34,
+                            excavate: true,
+                          }}
                         />
                       </div>
                     </div>
@@ -634,26 +812,14 @@ export default function Profile() {
                     <div className="grid grid-cols-2 gap-3 w-full">
                       <button 
                         onClick={handleDownloadQr}
-                        className="flex items-center justify-center space-x-2 py-3 bg-gray-100 rounded-xl text-gray-700 font-bold text-sm"
+                        className="flex items-center justify-center space-x-2 py-3 bg-gray-100 rounded-xl text-gray-700 font-bold text-sm active:scale-95 transition-all"
                       >
                         <Download className="w-4 h-4" />
-                        <span>Save</span>
+                        <span>{STRINGS.common.save}</span>
                       </button>
                       <button 
-                        onClick={async () => {
-                          if (navigator.share) {
-                            try {
-                              await navigator.share({
-                                title: 'My Profile QR',
-                                text: `Connect with me. ID: ${profile.employeeId || user?.uid}`,
-                                url: window.location.href
-                              });
-                            } catch (err) {
-                              console.error('Error sharing:', err);
-                            }
-                          }
-                        }}
-                        className="flex items-center justify-center space-x-2 py-3 bg-gray-100 rounded-xl text-gray-700 font-bold text-sm"
+                        onClick={handleShareQr}
+                        className="flex items-center justify-center space-x-2 py-3 bg-gray-100 rounded-xl text-gray-700 font-bold text-sm active:scale-95 transition-all"
                       >
                         <Share2 className="w-4 h-4" />
                         <span>Share</span>
@@ -740,6 +906,32 @@ export default function Profile() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-24 left-4 right-4 z-[100] flex justify-center pointer-events-none"
+          >
+            <div className={cn(
+              "px-6 py-3 rounded-2xl shadow-xl border flex items-center space-x-3 backdrop-blur-md",
+              toast.type === 'success' 
+                ? "bg-green-500/90 border-green-400/20 text-white" 
+                : "bg-red-500/90 border-red-400/20 text-white"
+            )}>
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <AlertCircle className="w-5 h-5" />
+              )}
+              <span className="text-sm font-bold">{toast.message}</span>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
