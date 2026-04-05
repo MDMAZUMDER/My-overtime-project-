@@ -1,9 +1,10 @@
-import { AppSettings, DEFAULT_SETTINGS, UserProfile, OvertimeEntry } from "../types/app";
+import { AppSettings, DEFAULT_SETTINGS, UserProfile, OvertimeEntry, HistoryEntry } from "../types/app";
 
 const KEYS = {
   SETTINGS: "ot_tracker_settings",
   PROFILE: "ot_tracker_profile",
   ENTRIES: "ot_tracker_entries",
+  HISTORY: "ot_tracker_history",
 };
 
 export const StorageService = {
@@ -69,6 +70,42 @@ export const StorageService = {
     window.dispatchEvent(new Event("entriesChanged"));
   },
 
+  getHistory(): HistoryEntry[] {
+    const data = localStorage.getItem(KEYS.HISTORY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveHistory(history: HistoryEntry[]) {
+    localStorage.setItem(KEYS.HISTORY, JSON.stringify(history));
+    window.dispatchEvent(new Event("historyChanged"));
+  },
+
+  closeCalculation(totalHours: number, totalEarnings: number) {
+    const entries = this.getEntries();
+    if (entries.length === 0) return;
+
+    const sortedEntries = [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const startDate = sortedEntries[0].date;
+    const endDate = sortedEntries[sortedEntries.length - 1].date;
+
+    const historyEntry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      startDate,
+      endDate,
+      totalHours,
+      totalEarnings,
+      entries,
+      closedAt: new Date().toISOString(),
+    };
+
+    const history = this.getHistory();
+    history.unshift(historyEntry); // Add to beginning
+    this.saveHistory(history);
+
+    // Clear current entries
+    this.saveEntries([]);
+  },
+
   clearAllData() {
     localStorage.clear();
     window.location.reload();
@@ -78,7 +115,8 @@ export const StorageService = {
     const data = {
       settings: this.getSettings(),
       profile: this.getProfile(),
-      entries: JSON.parse(localStorage.getItem(KEYS.ENTRIES) || "[]"),
+      entries: this.getEntries(),
+      history: this.getHistory(),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -97,6 +135,7 @@ export const StorageService = {
       if (data.settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.settings));
       if (data.profile) localStorage.setItem(KEYS.PROFILE, JSON.stringify(data.profile));
       if (data.entries) localStorage.setItem(KEYS.ENTRIES, JSON.stringify(data.entries));
+      if (data.history) localStorage.setItem(KEYS.HISTORY, JSON.stringify(data.history));
       
       window.location.reload();
       return true;

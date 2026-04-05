@@ -2,7 +2,6 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import { useEffect, useState } from "react";
 import { StorageService } from "../services/storage";
-import { AnimatePresence, motion } from "motion/react";
 import SplashScreen from "./SplashScreen";
 import SecurityLock from "./SecurityLock";
 import NotificationManager from "./NotificationManager";
@@ -17,16 +16,24 @@ export default function Layout() {
   const [showSplash, setShowSplash] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Force dashboard on initial load only once per session
+  // Handle security lock when returning from background
   useEffect(() => {
-    const hasRedirected = sessionStorage.getItem("initial_redirect_done");
-    if (!hasRedirected) {
-      sessionStorage.setItem("initial_redirect_done", "true");
-      if (location.pathname !== "/") {
-        navigate("/", { replace: true });
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        const currentSettings = StorageService.getSettings();
+        if (currentSettings.security.enabled) {
+          setIsLocked(true);
+          setHasUnlocked(false);
+        }
       }
-    }
-  }, [navigate]); // Only run once on mount
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2500);
@@ -75,22 +82,10 @@ export default function Layout() {
       }
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        const currentSettings = StorageService.getSettings();
-        if (currentSettings.security.enabled) {
-          setIsLocked(true);
-          setHasUnlocked(false);
-        }
-      }
-    };
-
     window.addEventListener("settingsChanged", handleSettingsChange);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
     
     return () => {
       window.removeEventListener("settingsChanged", handleSettingsChange);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [hasUnlocked]);
 
@@ -101,12 +96,10 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col max-w-lg mx-auto shadow-xl relative overflow-hidden transition-colors duration-300">
-      <AnimatePresence>
-        {showSplash && <SplashScreen />}
-        {isLocked && !showSplash && (
-          <SecurityLock onUnlock={handleUnlock} />
-        )}
-      </AnimatePresence>
+      {showSplash && <SplashScreen />}
+      {isLocked && !showSplash && (
+        <SecurityLock onUnlock={handleUnlock} />
+      )}
 
       {!showSplash && !isLocked && (
         <>

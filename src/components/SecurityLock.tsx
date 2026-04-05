@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion } from "motion/react";
 import { Lock, Fingerprint, ShieldAlert } from "lucide-react";
 import { NativeBiometric } from "capacitor-native-biometric";
 import { useStrings } from "../hooks/useStrings";
@@ -52,10 +51,7 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <div
       className="fixed inset-0 z-[150] bg-surface flex flex-col items-center justify-center p-8 text-center"
     >
       <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
@@ -66,10 +62,9 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
       <p className="text-on-surface-variant opacity-70 mb-12">
         {error ? error : STRINGS.security.lockedMessageBiometric}
       </p>
-
+ 
       <div className="flex flex-col items-center space-y-8">
-        <motion.button
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={authenticate}
           disabled={isAuthenticating}
           className={`w-24 h-24 rounded-full flex items-center justify-center border-2 transition-all ${
@@ -81,7 +76,7 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
           ) : (
             <Fingerprint className={`w-12 h-12 text-primary ${isAuthenticating ? "animate-pulse" : ""}`} />
           )}
-        </motion.button>
+        </button>
         
         <button
           onClick={authenticate}
@@ -91,6 +86,6 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
           {isAuthenticating ? STRINGS.security.authenticating : error ? STRINGS.security.tryAgain : STRINGS.security.tapToUnlock}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

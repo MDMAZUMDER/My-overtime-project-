@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion } from "motion/react";
-import { Bell, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Bell, ArrowLeft, Save } from "lucide-react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { NotificationService } from "../../services/notification";
@@ -11,11 +10,20 @@ import { useNavigate } from "react-router-dom";
 export default function NotificationSettings() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
+  const initialSettings = useMemo(() => StorageService.getSettings(), []);
+  const [settings, setSettings] = useState<AppSettings>(initialSettings);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [localMessage, setLocalMessage] = useState(settings.notifications.reminderMessage || "");
+  const [hasChanges, setHasChanges] = useState(false);
 
   const isSupported = NotificationService.isSupported();
+
+  useEffect(() => {
+    const isChanged = 
+      JSON.stringify(settings.notifications) !== JSON.stringify(initialSettings.notifications) ||
+      localMessage !== initialSettings.notifications.reminderMessage;
+    setHasChanges(isChanged);
+  }, [settings.notifications, localMessage, initialSettings.notifications]);
 
   useEffect(() => {
     if (!isSupported) {
@@ -29,24 +37,19 @@ export default function NotificationSettings() {
     checkPermissions();
   }, [isSupported]);
 
-  // Debounce notification scheduling for the custom message
+  // Debounce notification scheduling for the custom message - only update local state
   useEffect(() => {
     const timer = setTimeout(() => {
       if (localMessage !== settings.notifications.reminderMessage) {
-        setSettings(prev => {
-          const newSettings = {
-            ...prev,
-            notifications: { ...prev.notifications, reminderMessage: localMessage }
-          };
-          StorageService.saveSettings(newSettings);
-          NotificationService.scheduleReminder(newSettings.notifications, STRINGS);
-          return newSettings;
-        });
+        setSettings(prev => ({
+          ...prev,
+          notifications: { ...prev.notifications, reminderMessage: localMessage }
+        }));
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [localMessage, settings.notifications.reminderMessage, STRINGS]);
+  }, [localMessage, settings.notifications.reminderMessage]);
 
   const updateSettings = async (updates: Partial<AppSettings['notifications']>) => {
     const newSettings = {
@@ -61,20 +64,19 @@ export default function NotificationSettings() {
     }
 
     setSettings(newSettings);
-    StorageService.saveSettings(newSettings);
-    
-    // Schedule or cancel notification
+  };
+
+  const handleSave = async () => {
+    StorageService.saveSettings(settings);
     if (isSupported) {
-      await NotificationService.scheduleReminder(newSettings.notifications, STRINGS);
+      await NotificationService.scheduleReminder(settings.notifications, STRINGS);
     }
+    setHasChanges(false);
+    navigate(-1);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-6 pb-10"
-    >
+    <div className="space-y-6 pb-10">
       <header className="flex items-center space-x-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
           <ArrowLeft className="w-6 h-6" />
@@ -166,6 +168,18 @@ export default function NotificationSettings() {
           </div>
         )}
       </div>
-    </motion.div>
+
+      {hasChanges && (
+        <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-40">
+          <button
+            onClick={handleSave}
+            className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 flex items-center justify-center space-x-2 active:scale-95 transition-all"
+          >
+            <Save className="w-5 h-5" />
+            <span>{STRINGS.common.save || "Save Changes"}</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

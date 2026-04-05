@@ -1,5 +1,4 @@
 import { useState, useEffect, ChangeEvent, useRef, ReactNode } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { Camera, Save, User, IdCard, Briefcase, Calendar, MapPin, Building2, QrCode, X, CheckCircle2, Shield, Image as ImageIcon, AlertCircle, Share2, Download, ArrowLeft, MoreVertical, Plus, Copy } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
@@ -26,6 +25,7 @@ export default function Profile() {
     companyId: "",
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [lastSavedProfile, setLastSavedProfile] = useState<UserProfile | null>(null);
   const [showQrView, setShowQrView] = useState(false);
   const [qrTab, setQrTab] = useState<'my' | 'scan'>('my');
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
@@ -40,7 +40,7 @@ export default function Profile() {
     let initialProfile = savedProfile || firebaseProfile || {
       fullName: "",
       companyName: "",
-      employeeId: "",
+      employeeId: "SRH - ",
       department: "",
       designation: "",
       joinDate: "",
@@ -48,7 +48,12 @@ export default function Profile() {
       companyId: "",
     };
 
+    if (initialProfile.employeeId === "" || !initialProfile.employeeId.startsWith("SRH - ")) {
+      initialProfile.employeeId = "SRH - " + (initialProfile.employeeId.replace(/\D/g, "").slice(0, 5));
+    }
+
     setProfile(initialProfile);
+    setLastSavedProfile(JSON.parse(JSON.stringify(initialProfile)));
     
     if (!savedProfile && !firebaseProfile) {
       setIsEditing(true);
@@ -69,15 +74,20 @@ export default function Profile() {
     if (showQrView && qrTab === 'scan' && connectionStatus === 'idle') {
       const startScanner = async () => {
         try {
+          if (!isMounted) return;
+
           // Ensure the element exists before starting
           const readerElement = document.getElementById("reader");
           if (!readerElement) return;
 
+          // Clear any existing content in the reader element
+          readerElement.innerHTML = "";
+
           // If there's an existing scanner, try to stop it first
           if (html5QrCodeRef.current) {
             try {
-              const state = (html5QrCodeRef.current as any).getState();
-              if (state === 2 || state === 3) {
+              const state = html5QrCodeRef.current.getState();
+              if (state !== 1) { // 1 is NOT_STARTED
                 await html5QrCodeRef.current.stop();
               }
             } catch (e) {
@@ -88,37 +98,27 @@ export default function Profile() {
           currentScanner = new Html5Qrcode("reader");
           html5QrCodeRef.current = currentScanner;
           
-          // Try to get cameras first to see if any are available
-          const cameras = await Html5Qrcode.getCameras().catch(() => []);
-          
-          if (cameras && cameras.length > 0) {
-            // Prefer back camera if available
-            const backCamera = cameras.find(cam => 
-              cam.label.toLowerCase().includes('back') || 
-              cam.label.toLowerCase().includes('rear') ||
-              cam.label.toLowerCase().includes('environment')
-            );
-            
-            const cameraId = backCamera ? backCamera.id : cameras[0].id;
-            
+          // Use facingMode: "environment" directly as it's more robust
+          // than manually picking a camera ID in many mobile browsers
+          const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          };
+
+          try {
             await currentScanner.start(
-              cameraId,
-              {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-              },
+              { facingMode: "environment" },
+              config,
               onScanSuccess,
               onScanFailure
             );
-          } else {
-            // Fallback to facingMode if getCameras fails or returns empty
+          } catch (startErr) {
+            // If environment fails, try any available camera
+            console.warn("Failed to start with environment, trying default", startErr);
             await currentScanner.start(
-              { facingMode: "environment" },
-              {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-              },
+              { facingMode: "user" }, // Fallback to front camera if back fails
+              config,
               onScanSuccess,
               onScanFailure
             );
@@ -127,8 +127,12 @@ export default function Profile() {
           if (!isMounted) return;
           console.error("Error starting scanner", err);
           setConnectionStatus('error');
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          
+          const errorStr = err?.toString() || "";
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || errorStr.includes("Permission denied")) {
             setErrorMessage(STRINGS.profile.cameraPermissionDenied);
+          } else if (errorStr.includes("NotFound") || errorStr.includes("no device")) {
+            setErrorMessage("No camera found on this device.");
           } else {
             setErrorMessage(STRINGS.profile.cameraStartFailed);
           }
@@ -136,7 +140,7 @@ export default function Profile() {
       };
 
       // Increased delay to ensure DOM is ready and previous instances are cleared
-      const timer = setTimeout(startScanner, 500);
+      const timer = setTimeout(startScanner, 800);
       
       return () => {
         isMounted = false;
@@ -144,9 +148,11 @@ export default function Profile() {
         if (currentScanner) {
           const stopScanner = async () => {
             try {
-              const state = (currentScanner as any).getState();
-              if (state === 2 || state === 3) {
-                await currentScanner.stop();
+              if (currentScanner) {
+                const state = currentScanner.getState();
+                if (state !== 1) {
+                  await currentScanner.stop();
+                }
               }
             } catch (err) {
               // Ignore cleanup errors
@@ -266,6 +272,13 @@ export default function Profile() {
       alert(STRINGS.profile.fullNameRequired);
       return;
     }
+
+    // Ensure employeeId is valid (not just the prefix)
+    const prefix = "SRH - ";
+    if (profile.employeeId === prefix) {
+      alert("Please enter your 5-digit Employee ID after 'SRH - '");
+      return;
+    }
     
     // Final sync before saving
     const finalProfile = {
@@ -282,6 +295,7 @@ export default function Profile() {
       }
     }
     setProfile(finalProfile);
+    setLastSavedProfile(JSON.parse(JSON.stringify(finalProfile)));
     setIsEditing(false);
   };
 
@@ -300,6 +314,8 @@ export default function Profile() {
     if (!qrRef.current) return;
     const qrCanvas = qrRef.current.querySelector('canvas');
     if (!qrCanvas) return;
+
+    setToast({ message: "Generating QR Card...", type: 'success' });
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -324,7 +340,11 @@ export default function Profile() {
     ctx.fillStyle = '#111b21';
     const radius = 40;
     ctx.beginPath();
-    ctx.roundRect(cardPadding, cardY, cardWidth, cardHeight, radius);
+    if (ctx.roundRect) {
+      ctx.roundRect(cardPadding, cardY, cardWidth, cardHeight, radius);
+    } else {
+      ctx.rect(cardPadding, cardY, cardWidth, cardHeight);
+    }
     ctx.fill();
 
     // 3. Profile Picture (Circular)
@@ -340,11 +360,16 @@ export default function Profile() {
     if (profile.profilePhoto) {
       try {
         const img = new Image();
-        img.crossOrigin = "anonymous";
+        // Only set crossOrigin if it's a URL, not a base64 string
+        if (profile.profilePhoto.startsWith('http')) {
+          img.crossOrigin = "anonymous";
+        }
         img.src = profile.profilePhoto;
         await new Promise((resolve, reject) => {
           img.onload = resolve;
           img.onerror = reject;
+          // Timeout after 5 seconds
+          setTimeout(() => reject(new Error("Image load timeout")), 5000);
         });
         
         ctx.save();
@@ -354,17 +379,29 @@ export default function Profile() {
         ctx.drawImage(img, (width / 2) - (profileSize / 2), profileY, profileSize, profileSize);
         ctx.restore();
       } catch (e) {
+        console.warn("Profile photo failed to load for QR card", e);
         // Fallback if image fails
         ctx.fillStyle = '#2a3942';
         ctx.beginPath();
         ctx.arc(width / 2, profileY + (profileSize / 2), profileSize / 2, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Draw a simple user icon placeholder
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 80px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(profile.fullName?.charAt(0).toUpperCase() || "U", width / 2, profileY + (profileSize / 2) + 30);
       }
     } else {
       ctx.fillStyle = '#2a3942';
       ctx.beginPath();
       ctx.arc(width / 2, profileY + (profileSize / 2), profileSize / 2, 0, Math.PI * 2);
       ctx.fill();
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 80px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(profile.fullName?.charAt(0).toUpperCase() || "U", width / 2, profileY + (profileSize / 2) + 30);
     }
 
     // 4. Name
@@ -387,7 +424,11 @@ export default function Profile() {
     const qrRadius = 40;
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, qrRadius);
+    if (ctx.roundRect) {
+      ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, qrRadius);
+    } else {
+      ctx.rect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80);
+    }
     ctx.fill();
     
     ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
@@ -421,14 +462,34 @@ export default function Profile() {
 
     // 8. Download
     try {
-      const url = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `QR_Card_${profile.fullName || "User"}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error("Failed to create image blob");
+          setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
+          return;
+        }
+        
+        try {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `QR_Card_${profile.fullName || "User"}.png`.replace(/[/\\?%*:|"<>]/g, '-');
+          
+          // Append to body to ensure it works in all browsers
+          document.body.appendChild(link);
+          link.click();
+          
+          // Small delay before cleanup
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
+          }, 200);
+        } catch (e) {
+          console.error("Download trigger failed", e);
+          setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
+        }
+      }, "image/png", 1.0);
     } catch (err) {
       console.error("Download failed", err);
       setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
@@ -505,11 +566,7 @@ export default function Profile() {
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-3xl mx-auto pb-32 pt-4"
-    >
+    <div className="max-w-3xl mx-auto pb-32 pt-4">
       {/* Header with Back Button */}
       <header className="px-6 py-4 flex items-center space-x-4">
         <button 
@@ -607,32 +664,52 @@ export default function Profile() {
         </div>
 
         {isEditing ? (
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 space-y-5 shadow-sm">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-5 shadow-sm">
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 ml-1">Full Name</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-1">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <input
                     type="text"
+                    required
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
                     value={profile.fullName}
                     onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:border-primary outline-none transition-all font-medium text-sm"
+                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold text-sm text-gray-900 dark:text-white"
                     placeholder="Enter your name"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 ml-1">Employee ID</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-1">Employee ID</label>
                 <div className="relative">
-                  <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <input
                     type="text"
+                    required
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
                     value={profile.employeeId}
-                    onChange={(e) => setProfile({ ...profile, employeeId: e.target.value })}
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:border-primary outline-none transition-all font-medium text-sm"
-                    placeholder="e.g. EMP12345"
+                    onChange={(e) => {
+                      const prefix = "SRH - ";
+                      let val = e.target.value;
+                      let digits = "";
+                      
+                      if (val.startsWith(prefix)) {
+                        digits = val.slice(prefix.length).replace(/\D/g, "");
+                      } else {
+                        // Handle cases where user might delete part of prefix
+                        digits = val.replace(/[^\d]/g, "");
+                      }
+                      
+                      const finalVal = prefix + digits.slice(0, 5);
+                      setProfile({ ...profile, employeeId: finalVal });
+                    }}
+                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold text-sm text-gray-900 dark:text-white"
+                    placeholder="SRH - 12345"
                   />
                 </div>
               </div>
@@ -640,17 +717,15 @@ export default function Profile() {
 
             <div className="flex space-x-3 pt-2">
               <button
-                onClick={() => setIsEditing(false)}
-                className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm"
+                onClick={() => {
+                  if (lastSavedProfile) {
+                    setProfile(JSON.parse(JSON.stringify(lastSavedProfile)));
+                  }
+                  setIsEditing(false);
+                }}
+                className="w-full py-3.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-primary/20"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save</span>
               </button>
             </div>
           </div>
@@ -667,7 +742,7 @@ export default function Profile() {
             <ProfileField 
               icon={IdCard} 
               label="Employee ID" 
-              value={profile.employeeId || user?.uid} 
+              value={(profile.employeeId && profile.employeeId !== "SRH - ") ? profile.employeeId : (user?.uid || "Not Set")} 
               colorClass="text-purple-500"
               bgClass="bg-purple-50"
               action={
@@ -675,17 +750,15 @@ export default function Profile() {
                   onClick={handleCopyId}
                   className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors"
                 >
-                  <AnimatePresence mode="wait">
-                    {copied ? (
-                      <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      </motion.div>
-                    ) : (
-                      <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                        <Copy className="w-4 h-4" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {copied ? (
+                    <div key="check">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    </div>
+                  ) : (
+                    <div key="copy">
+                      <Copy className="w-4 h-4" />
+                    </div>
+                  )}
                 </button>
               }
             />
@@ -722,24 +795,17 @@ export default function Profile() {
         )}
       </div>
 
-      <AnimatePresence>
-        {showQrView && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowQrView(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-                       {/* Modal Content */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl bg-white"
-            >
+      {showQrView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowQrView(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+          {/* Modal Content */}
+          <div
+            className="relative w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl bg-white"
+          >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
@@ -839,11 +905,7 @@ export default function Profile() {
                           <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-white rounded-bl-md"></div>
                           <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-white rounded-br-md"></div>
                           
-                          <motion.div
-                            animate={{ top: ['10%', '90%'] }}
-                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            className="absolute left-0 right-0 h-0.5 bg-white/50"
-                          />
+                          <div className="absolute left-0 right-0 h-0.5 bg-white/50 top-1/2" />
                         </div>
                       </div>
 
@@ -870,8 +932,11 @@ export default function Profile() {
                               </div>
                               <p className="text-white font-bold text-[10px]">{errorMessage}</p>
                               <button 
-                                onClick={() => setConnectionStatus('idle')}
-                                className="px-4 py-2 bg-white text-black rounded-full text-[10px] font-bold"
+                                onClick={() => {
+                                  setErrorMessage(null);
+                                  setConnectionStatus('idle');
+                                }}
+                                className="px-4 py-2 bg-white text-black rounded-full text-[10px] font-bold active:scale-95 transition-all"
                               >
                                 {STRINGS.profile.tryAgain}
                               </button>
@@ -904,37 +969,41 @@ export default function Profile() {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
 
       {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-24 left-4 right-4 z-[100] flex justify-center pointer-events-none"
+      {isEditing && JSON.stringify(profile) !== JSON.stringify(lastSavedProfile) && (
+        <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-40">
+          <button
+            onClick={handleSave}
+            className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 flex items-center justify-center space-x-2 active:scale-95 transition-all"
           >
-            <div className={cn(
-              "px-6 py-3 rounded-2xl shadow-xl border flex items-center space-x-3 backdrop-blur-md",
-              toast.type === 'success' 
-                ? "bg-green-500/90 border-green-400/20 text-white" 
-                : "bg-red-500/90 border-red-400/20 text-white"
-            )}>
-              {toast.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5" />
-              ) : (
-                <AlertCircle className="w-5 h-5" />
-              )}
-              <span className="text-sm font-bold">{toast.message}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+            <Save className="w-5 h-5" />
+            <span>{STRINGS.common.save || "Save Changes"}</span>
+          </button>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-24 left-4 right-4 z-[100] flex justify-center pointer-events-none">
+          <div className={cn(
+            "px-6 py-3 rounded-2xl shadow-xl border flex items-center space-x-3 backdrop-blur-md",
+            toast.type === 'success' 
+              ? "bg-green-500/90 border-green-400/20 text-white" 
+              : "bg-red-500/90 border-red-400/20 text-white"
+          )}>
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+            <span className="text-sm font-bold">{toast.message}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

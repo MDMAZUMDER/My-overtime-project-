@@ -1,27 +1,34 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { useStrings } from "../hooks/useStrings";
 import { cn } from "../lib/utils";
 import { StorageService } from "../services/storage";
-import { OvertimeEntry } from "../types/app";
-import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, Download, Share2, Loader2, Facebook, ArrowLeft } from "lucide-react";
+import { OvertimeEntry, HistoryEntry } from "../types/app";
+import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, Download, Share2, Loader2, ArrowLeft, History, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { calculateTotalStats } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
+import { Tooltip } from "../components/ui/Tooltip";
 
 export default function Reports() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("recent");
   const [entries, setEntries] = useState<OvertimeEntry[]>(StorageService.getEntries());
+  const [history, setHistory] = useState<HistoryEntry[]>(StorageService.getHistory());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const settings = StorageService.getSettings();
 
   useEffect(() => {
     const handleEntriesChange = () => setEntries(StorageService.getEntries());
+    const handleHistoryChange = () => setHistory(StorageService.getHistory());
     window.addEventListener("entriesChanged", handleEntriesChange);
-    return () => window.removeEventListener("entriesChanged", handleEntriesChange);
+    window.addEventListener("historyChanged", handleHistoryChange);
+    return () => {
+      window.removeEventListener("entriesChanged", handleEntriesChange);
+      window.removeEventListener("historyChanged", handleHistoryChange);
+    };
   }, []);
 
   const filteredEntries = useMemo(() => {
@@ -62,13 +69,21 @@ export default function Reports() {
     }
   };
 
-  const handleExport = async (action: 'open' | 'share') => {
-    if (filteredEntries.length === 0) return;
+  const handleCloseCalculation = () => {
+    StorageService.closeCalculation(overallStats.totalHours, overallStats.totalEarnings);
+    setShowCloseConfirm(false);
+    setActiveTab("history");
+  };
+
+  const handleExport = async (action: 'open' | 'share', customEntries?: OvertimeEntry[], customTitle?: string) => {
+    const targetEntries = customEntries || filteredEntries;
+    if (targetEntries.length === 0) return;
+    
     setIsExporting(true);
     try {
       const profile = StorageService.getProfile();
-      const title = `${STRINGS.reports[activeTab as keyof typeof STRINGS.reports] || activeTab} ${STRINGS.reports.reportTitle}`;
-      const { blob, filename } = await PDFService.generateReport(filteredEntries, profile, settings, title, STRINGS);
+      const title = customTitle || `${STRINGS.reports[activeTab as keyof typeof STRINGS.reports] || activeTab} ${STRINGS.reports.reportTitle}`;
+      const { blob, filename } = await PDFService.generateReport(targetEntries, profile, settings, title, STRINGS);
       
       if (action === 'open') {
         await PDFService.openPDF(blob, filename);
@@ -87,6 +102,7 @@ export default function Reports() {
     { id: "weekly", label: STRINGS.reports.weekly },
     { id: "monthly", label: STRINGS.reports.monthly },
     { id: "all", label: STRINGS.reports.all },
+    { id: "history", label: STRINGS.reports.history },
   ];
 
   return (
@@ -99,71 +115,66 @@ export default function Reports() {
           <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.reports}</h1>
         </div>
         <div className="flex space-x-2">
-          <button
-            onClick={() => handleExport('open')}
-            disabled={isExporting || filteredEntries.length === 0}
-            className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
-            title={STRINGS.reports.downloadPDF}
-          >
-            {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-          </button>
-          <button
-            onClick={() => handleExport('share')}
-            disabled={isExporting || filteredEntries.length === 0}
-            className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
-            title={STRINGS.reports.sharePDF}
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
+          <Tooltip content={STRINGS.reports.downloadPDF} position="bottom">
+            <button
+              onClick={() => handleExport('open')}
+              disabled={isExporting || (activeTab !== 'history' && filteredEntries.length === 0)}
+              className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
+            >
+              {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+            </button>
+          </Tooltip>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex items-center space-x-3">
-          <div className="p-2 bg-primary/10 rounded-xl">
-            <Clock className="w-4 h-4 text-primary" />
+      {activeTab !== 'history' && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex items-center space-x-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Clock className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.dashboard.totalHours}</p>
+              <p className="text-sm font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}h</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.dashboard.totalHours}</p>
-            <p className="text-sm font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}h</p>
+          <div className="bg-secondary/5 border border-secondary/10 p-4 rounded-2xl flex items-center space-x-3">
+            <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
+              ﷼
+            </div>
+            <div>
+              <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.otEarnings}</p>
+              <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {overallStats.totalEarnings.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl flex items-center space-x-3">
+            <div className="p-2 bg-surface rounded-xl">
+              <TrendingUp className="w-4 h-4 text-on-surface-variant opacity-60" />
+            </div>
+            <div>
+              <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.basicSalary}</p>
+              <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="bg-primary-container p-4 rounded-2xl flex items-center space-x-3 shadow-sm border border-primary/10">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <TrendingUp className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.totalPayout}</p>
+              <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}</p>
+            </div>
           </div>
         </div>
-        <div className="bg-secondary/5 border border-secondary/10 p-4 rounded-2xl flex items-center space-x-3">
-          <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
-            ﷼
-          </div>
-          <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.otEarnings}</p>
-            <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {overallStats.totalEarnings.toFixed(2)}</p>
-          </div>
-        </div>
-        <div className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl flex items-center space-x-3">
-          <div className="p-2 bg-surface rounded-xl">
-            <TrendingUp className="w-4 h-4 text-on-surface-variant opacity-60" />
-          </div>
-          <div>
-            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.basicSalary}</p>
-            <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
-          </div>
-        </div>
-        <div className="bg-primary-container p-4 rounded-2xl flex items-center space-x-3 shadow-sm border border-primary/10">
-          <div className="p-2 bg-primary/10 rounded-xl">
-            <TrendingUp className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.totalPayout}</p>
-            <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}</p>
-          </div>
-        </div>
-      </div>
+      )}
 
-      <div className="flex bg-surface-variant rounded-full p-1 sticky top-0 z-10 shadow-sm">
+      <div className="flex bg-surface-variant rounded-full p-1 sticky top-0 z-10 shadow-sm overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex-1 py-2 text-xs font-medium rounded-full transition-all duration-200",
+              "flex-1 py-2 px-4 text-xs font-medium rounded-full transition-all duration-200 whitespace-nowrap",
               activeTab === tab.id
                 ? "bg-primary text-on-primary shadow-sm"
                 : "text-on-surface-variant hover:bg-primary/10"
@@ -175,13 +186,81 @@ export default function Reports() {
       </div>
 
       <div className="space-y-4">
-        {filteredEntries.length > 0 ? (
+        {activeTab === 'history' ? (
+          <div className="space-y-4">
+            {entries.length > 0 && (
+              <div className="bg-primary/5 border border-primary/10 p-5 rounded-3xl flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-primary/10 rounded-xl">
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-on-surface">
+                      {STRINGS.settings.closeMonthAndStartNew}
+                    </h3>
+                    <p className="text-[10px] text-on-surface-variant opacity-60">
+                      {STRINGS.settings.closeCalculationDesc}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCloseConfirm(true)}
+                  className="px-4 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-md shadow-primary/20 active:scale-95 transition-all"
+                >
+                  {STRINGS.settings.closeCalculation}
+                </button>
+              </div>
+            )}
+            
+            {history.length > 0 ? (
+            history.map((item) => (
+              <div key={item.id} className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-secondary/10 rounded-xl">
+                      <History className="w-5 h-5 text-secondary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-on-surface">
+                        {new Date(item.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - {new Date(item.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant opacity-50 italic">
+                        Closed on {new Date(item.closedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleExport('open', item.entries, `Report ${new Date(item.startDate).toLocaleDateString()} - ${new Date(item.endDate).toLocaleDateString()}`)}
+                    className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-surface/50 p-2 rounded-xl text-center">
+                    <p className="text-[10px] text-on-surface-variant uppercase font-bold opacity-60">{STRINGS.dashboard.totalHours}</p>
+                    <p className="text-sm font-bold text-primary">{item.totalHours.toFixed(1)}h</p>
+                  </div>
+                  <div className="bg-surface/50 p-2 rounded-xl text-center">
+                    <p className="text-[10px] text-on-surface-variant uppercase font-bold opacity-60">{STRINGS.reports.otEarnings}</p>
+                    <p className="text-sm font-bold text-secondary">{settings.overtime.currency} {item.totalEarnings.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-surface-variant/20 border border-dashed border-outline/30 rounded-[32px] p-12 flex flex-col items-center justify-center text-on-surface-variant/40 space-y-4 text-center">
+              <div className="w-16 h-16 bg-surface-variant/50 rounded-full flex items-center justify-center">
+                <History className="w-8 h-8 opacity-20" />
+              </div>
+              <p className="text-sm font-bold text-on-surface opacity-60">{STRINGS.common.noData}</p>
+            </div>
+            )}
+          </div>
+        ) : filteredEntries.length > 0 ? (
           filteredEntries.map((entry) => (
-            <motion.div
+            <div
               key={entry.id}
-              layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
               className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3 relative group"
             >
               <div className="flex justify-between items-start">
@@ -244,7 +323,7 @@ export default function Reports() {
                   </p>
                 </div>
               )}
-            </motion.div>
+            </div>
           ))
         ) : (
           <div className="bg-surface-variant/20 border border-dashed border-outline/30 rounded-[32px] p-12 flex flex-col items-center justify-center text-on-surface-variant/40 space-y-4 text-center">
@@ -266,47 +345,74 @@ export default function Reports() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AnimatePresence>
-        {deleteId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDeleteId(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-surface p-6 rounded-3xl shadow-2xl max-w-sm w-full space-y-4"
-            >
-              <div className="flex items-center space-x-3 text-red-500">
-                <AlertCircle className="w-6 h-6" />
-                <h3 className="text-lg font-bold">{STRINGS.reports.deleteEntryTitle}</h3>
-              </div>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
-                {STRINGS.reports.deleteEntryConfirm}
-              </p>
-              <div className="flex space-x-3 pt-2">
-                <button
-                  onClick={() => setDeleteId(null)}
-                  className="flex-1 py-3 px-4 rounded-xl font-bold text-on-surface-variant hover:bg-surface-variant transition-colors"
-                >
-                  {STRINGS.common.cancel}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 py-3 px-4 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
-                >
-                  {STRINGS.common.delete}
-                </button>
-              </div>
-            </motion.div>
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => setDeleteId(null)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+          <div
+            className="relative bg-surface p-6 rounded-3xl shadow-2xl max-w-sm w-full space-y-4"
+          >
+            <div className="flex items-center space-x-3 text-red-500">
+              <AlertCircle className="w-6 h-6" />
+              <h3 className="text-lg font-bold">{STRINGS.reports.deleteEntryTitle}</h3>
+            </div>
+            <p className="text-on-surface-variant text-sm leading-relaxed">
+              {STRINGS.reports.deleteEntryConfirm}
+            </p>
+            <div className="flex space-x-3 pt-2">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-on-surface-variant hover:bg-surface-variant transition-colors"
+              >
+                {STRINGS.common.cancel}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 py-3 px-4 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
+              >
+                {STRINGS.common.delete}
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
+
+      {/* Close Calculation Confirmation Dialog */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => setShowCloseConfirm(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+          <div
+            className="relative bg-surface p-6 rounded-3xl shadow-2xl max-w-sm w-full space-y-4"
+          >
+            <div className="flex items-center space-x-3 text-primary">
+              <CheckCircle2 className="w-6 h-6" />
+              <h3 className="text-lg font-bold">{STRINGS.settings.closeCalculation}</h3>
+            </div>
+            <p className="text-on-surface-variant text-sm leading-relaxed">
+              {STRINGS.settings.closeCalculationConfirm}
+            </p>
+            <div className="flex space-x-3 pt-2">
+              <button
+                onClick={() => setShowCloseConfirm(false)}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-on-surface-variant hover:bg-surface-variant transition-colors"
+              >
+                {STRINGS.common.cancel}
+              </button>
+              <button
+                onClick={handleCloseCalculation}
+                className="flex-1 py-3 px-4 rounded-xl font-bold bg-primary text-on-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95"
+              >
+                {STRINGS.settings.closeCalculation}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

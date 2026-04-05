@@ -1,16 +1,21 @@
-import { useState } from "react";
-import { motion } from "motion/react";
+import { useState, useMemo, useEffect } from "react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { AppSettings } from "../../types/app";
 import { cn } from "../../lib/utils";
-import { ShieldCheck, ArrowLeft } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function SecuritySettings() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
+  const initialSettings = useMemo(() => StorageService.getSettings(), []);
+  const [settings, setSettings] = useState<AppSettings>(initialSettings);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    setHasChanges(settings.security.enabled !== initialSettings.security.enabled);
+  }, [settings.security.enabled, initialSettings.security.enabled]);
 
   const updateSettings = (updates: Partial<AppSettings['security']>) => {
     const newSettings = {
@@ -18,15 +23,16 @@ export default function SecuritySettings() {
       security: { ...settings.security, ...updates }
     };
     setSettings(newSettings);
-    StorageService.saveSettings(newSettings);
+  };
+
+  const handleSave = () => {
+    StorageService.saveSettings(settings);
+    setHasChanges(false);
+    navigate(-1);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <header className="flex items-center space-x-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
           <ArrowLeft className="w-6 h-6" />
@@ -67,6 +73,18 @@ export default function SecuritySettings() {
           </div>
         </div>
       </div>
-    </motion.div>
+
+      {hasChanges && (
+        <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-40">
+          <button
+            onClick={handleSave}
+            className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 flex items-center justify-center space-x-2 active:scale-95 transition-all"
+          >
+            <Save className="w-5 h-5" />
+            <span>{STRINGS.common.save || "Save Changes"}</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

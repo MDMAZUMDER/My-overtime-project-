@@ -1,5 +1,4 @@
 import { useState, useEffect, FormEvent, useMemo } from "react";
-import { motion } from "motion/react";
 import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
 import { OvertimeEntry } from "../types/app";
@@ -111,6 +110,8 @@ export default function AddEntry() {
           <input
             type="date"
             required
+            onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
             value={entry.date}
             onChange={(e) => setEntry({ ...entry, date: e.target.value })}
             className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
@@ -125,6 +126,8 @@ export default function AddEntry() {
             type="number"
             step="0.5"
             required
+            onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
             min="0.5"
             placeholder={STRINGS.addEntry.hoursPlaceholder}
             value={entry.hours || ""}
@@ -179,11 +182,23 @@ export default function AddEntry() {
               />
               <Tooltip 
                 cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                contentStyle={{ 
-                  backgroundColor: 'var(--surface)', 
-                  border: '1px solid var(--outline-variant)',
-                  borderRadius: '12px',
-                  fontSize: '12px'
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-surface border border-outline/20 p-3 rounded-2xl shadow-xl backdrop-blur-md">
+                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider opacity-60 mb-1">
+                          {payload[0].payload.label}
+                        </p>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                          <p className="text-sm font-bold text-on-surface">
+                            {payload[0].value} {STRINGS.dashboard.hours}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
               />
               <Bar 

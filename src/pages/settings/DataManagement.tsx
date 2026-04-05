@@ -1,16 +1,32 @@
 import React from "react";
-import { motion } from "motion/react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
+import { calculateTotalStats } from "../../lib/calculations";
 import { Download, Upload, Trash2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function DataManagement() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
+  const settings = StorageService.getSettings();
+  const entries = StorageService.getEntries();
+  const stats = calculateTotalStats(entries, settings);
+
   const handleClearData = () => {
     if (window.confirm(STRINGS.settings.clearDataConfirm)) {
       StorageService.clearAllData();
+    }
+  };
+
+  const handleCloseCalculation = () => {
+    if (entries.length === 0) {
+      alert(STRINGS.dashboard.noRecentEntries);
+      return;
+    }
+    if (window.confirm(STRINGS.settings.closeCalculationConfirm)) {
+      StorageService.closeCalculation(stats.totalHours, stats.totalEarnings);
+      alert(STRINGS.common.save + " Success!");
+      navigate("/reports");
     }
   };
 
@@ -25,11 +41,7 @@ export default function DataManagement() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <header className="flex items-center space-x-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
           <ArrowLeft className="w-6 h-6" />
@@ -47,7 +59,7 @@ export default function DataManagement() {
           </div>
           <div className="text-left">
             <p className="font-medium text-on-surface">{STRINGS.settings.exportData}</p>
-            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.settings.exportDataDescription}</p>
+            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.settings.saveJsonDesc}</p>
           </div>
         </button>
 
@@ -63,11 +75,11 @@ export default function DataManagement() {
           </div>
           <div className="text-left">
             <p className="font-medium text-on-surface">{STRINGS.settings.importData}</p>
-            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.settings.importDataDescription}</p>
+            <p className="text-xs text-on-surface-variant opacity-60">{STRINGS.settings.restoreJsonDesc}</p>
           </div>
         </label>
 
-        <div className="pt-8">
+        <div className="pt-4">
           <div className="bg-red-500/5 border border-red-500/20 rounded-3xl p-6 space-y-4">
             <div className="flex items-center space-x-2 text-red-500">
               <AlertTriangle className="w-5 h-5" />
@@ -86,6 +98,6 @@ export default function DataManagement() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

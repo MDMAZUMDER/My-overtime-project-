@@ -1,15 +1,16 @@
-import { motion } from "motion/react";
 import { useStrings } from "../hooks/useStrings";
 import { useEffect, useState, useMemo } from "react";
 import { StorageService } from "../services/storage";
 import { UserProfile, OvertimeEntry } from "../types/app";
-import { User, TrendingUp, Clock, Calendar, Facebook } from "lucide-react";
-import { Link } from "react-router-dom";
+import { User, TrendingUp, Clock, Calendar, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { calculateTotalStats, getRecentSummary } from "../lib/calculations";
 import Logo from "../components/Logo";
+import { Tooltip } from "../components/ui/Tooltip";
 
 export default function Dashboard() {
   const STRINGS = useStrings();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(StorageService.getProfile());
   const [entries, setEntries] = useState<OvertimeEntry[]>(StorageService.getEntries());
   const settings = StorageService.getSettings();
@@ -60,38 +61,42 @@ export default function Dashboard() {
       </header>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-primary-container p-5 rounded-3xl shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Clock className="w-4 h-4 text-primary" />
+        <Tooltip content={STRINGS.dashboard.totalHours} position="bottom" className="w-full">
+          <div className="bg-primary-container p-5 rounded-3xl shadow-sm space-y-2 w-full">
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <Clock className="w-4 h-4 text-primary" />
+              </div>
+              <TrendingUp className="w-4 h-4 text-primary opacity-40" />
             </div>
-            <TrendingUp className="w-4 h-4 text-primary opacity-40" />
-          </div>
-          <div>
-            <p className="text-on-primary-container text-xs font-medium opacity-70">
-              {STRINGS.dashboard.totalHours}
-            </p>
-            <p className="text-on-primary-container text-2xl font-bold">
-              {stats.totalHours.toFixed(1)}h
-            </p>
-          </div>
-        </div>
-        <div className="bg-secondary-container p-5 rounded-3xl shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
-              ﷼
+            <div>
+              <p className="text-on-primary-container text-xs font-medium opacity-70">
+                {STRINGS.dashboard.totalHours}
+              </p>
+              <p className="text-on-primary-container text-2xl font-bold">
+                {stats.totalHours.toFixed(1)}h
+              </p>
             </div>
-            <TrendingUp className="w-4 h-4 text-secondary opacity-40" />
           </div>
-          <div>
-            <p className="text-on-secondary-container text-xs font-medium opacity-70">
-              {STRINGS.dashboard.totalEarnings}
-            </p>
-            <p className="text-on-secondary-container text-2xl font-bold">
-              {settings.overtime.currency} {stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+        </Tooltip>
+        <Tooltip content={STRINGS.dashboard.totalEarnings} position="bottom" className="w-full">
+          <div className="bg-secondary-container p-5 rounded-3xl shadow-sm space-y-2 w-full">
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
+                ﷼
+              </div>
+              <TrendingUp className="w-4 h-4 text-secondary opacity-40" />
+            </div>
+            <div>
+              <p className="text-on-secondary-container text-xs font-medium opacity-70">
+                {STRINGS.dashboard.totalEarnings}
+              </p>
+              <p className="text-on-secondary-container text-2xl font-bold">
+                {settings.overtime.currency} {stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
           </div>
-        </div>
+        </Tooltip>
       </div>
 
       {stats.hourlyRate === 0 && (

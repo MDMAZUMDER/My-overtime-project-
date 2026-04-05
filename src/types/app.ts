@@ -18,6 +18,16 @@ export interface OvertimeEntry {
   status?: 'pending' | 'approved' | 'rejected';
 }
 
+export interface HistoryEntry {
+  id: string;
+  startDate: string;
+  endDate: string;
+  totalHours: number;
+  totalEarnings: number;
+  entries: OvertimeEntry[];
+  closedAt: string;
+}
+
 export type Language = 'bn' | 'en' | 'ar';
 export type Currency = 'SAR';
 export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY';

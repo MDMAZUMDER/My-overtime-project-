@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { User, Globe, Bell, Shield, Database, ChevronRight, Clock, Sun, Moon, SunMoon, ArrowLeft } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { Link, useNavigate } from "react-router-dom";
@@ -64,17 +63,9 @@ export default function Settings() {
           className="p-3 bg-surface-variant/50 border border-outline/10 rounded-2xl text-primary hover:bg-primary/5 transition-all relative group"
           title={settings.appearance.theme}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={settings.appearance.theme}
-              initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
-              transition={{ duration: 0.2 }}
-            >
-              {getThemeIcon()}
-            </motion.div>
-          </AnimatePresence>
+          <div key={settings.appearance.theme}>
+            {getThemeIcon()}
+          </div>
           <span className="absolute top-full right-0 mt-2 px-2 py-1 bg-surface border border-outline rounded-lg text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap shadow-xl">
             {settings.appearance.theme}
           </span>
