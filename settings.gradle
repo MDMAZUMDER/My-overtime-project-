@@ -1,4 +1,4 @@
-rootProject.name = "OverTime"
+rootProject.name = "overtime"
 include ':app'
 
 apply from: 'capacitor.settings.gradle'
