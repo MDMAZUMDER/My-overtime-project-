@@ -19,14 +19,6 @@
         android:strokeLineJoin="round"
         android:pathData="M54,34V54L66,66" />
     
-    <!-- Growth Arrow -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M70,38L82,26M82,26H74M82,26V34" />
-    
     <!-- Center Dot -->
     <path
         android:fillColor="#FFFFFF"
