@@ -101,7 +101,6 @@ export default function Reports() {
     { id: "recent", label: STRINGS.reports.recent },
     { id: "weekly", label: STRINGS.reports.weekly },
     { id: "monthly", label: STRINGS.reports.monthly },
-    { id: "all", label: STRINGS.reports.all },
     { id: "history", label: STRINGS.reports.history },
   ];
 

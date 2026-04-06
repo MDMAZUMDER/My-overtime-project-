@@ -1,5 +1,8 @@
 import { useState, useEffect, ChangeEvent, useRef, ReactNode } from "react";
 import { Camera, Save, User, IdCard, Briefcase, Calendar, MapPin, Building2, QrCode, X, CheckCircle2, Shield, Image as ImageIcon, AlertCircle, Share2, Download, ArrowLeft, MoreVertical, Plus, Copy } from "lucide-react";
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
 import { UserProfile } from "../types/app";
@@ -76,6 +79,13 @@ export default function Profile() {
         try {
           if (!isMounted) return;
 
+          // Check if mediaDevices is supported
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setConnectionStatus('error');
+            setErrorMessage("Your browser doesn't support camera access. Please use a modern browser.");
+            return;
+          }
+
           // Ensure the element exists before starting
           const readerElement = document.getElementById("reader");
           if (!readerElement) return;
@@ -98,14 +108,13 @@ export default function Profile() {
           currentScanner = new Html5Qrcode("reader");
           html5QrCodeRef.current = currentScanner;
           
-          // Use facingMode: "environment" directly as it's more robust
-          // than manually picking a camera ID in many mobile browsers
           const config = {
             fps: 10,
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0
           };
 
+          // Try to start with back camera
           try {
             await currentScanner.start(
               { facingMode: "environment" },
@@ -113,11 +122,17 @@ export default function Profile() {
               onScanSuccess,
               onScanFailure
             );
-          } catch (startErr) {
-            // If environment fails, try any available camera
-            console.warn("Failed to start with environment, trying default", startErr);
+          } catch (startErr: any) {
+            console.warn("Failed to start with environment, trying fallback", startErr);
+            
+            // If it's a permission error, throw it to be handled by the outer catch
+            if (startErr.name === 'NotAllowedError' || startErr.name === 'PermissionDeniedError' || startErr.toString().includes("Permission denied")) {
+              throw startErr;
+            }
+
+            // Otherwise try user camera as fallback
             await currentScanner.start(
-              { facingMode: "user" }, // Fallback to front camera if back fails
+              { facingMode: "user" },
               config,
               onScanSuccess,
               onScanFailure
@@ -125,21 +140,28 @@ export default function Profile() {
           }
         } catch (err: any) {
           if (!isMounted) return;
-          console.error("Error starting scanner", err);
+          console.error("Error starting scanner:", err);
           setConnectionStatus('error');
           
           const errorStr = err?.toString() || "";
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || errorStr.includes("Permission denied")) {
+          const isPermissionError = err.name === 'NotAllowedError' || 
+                                   err.name === 'PermissionDeniedError' || 
+                                   errorStr.includes("Permission denied") ||
+                                   errorStr.includes("NotAllowedError");
+
+          if (isPermissionError) {
             setErrorMessage(STRINGS.profile.cameraPermissionDenied);
-          } else if (errorStr.includes("NotFound") || errorStr.includes("no device")) {
+          } else if (errorStr.includes("NotFound") || errorStr.includes("no device") || errorStr.includes("DevicesNotFoundError")) {
             setErrorMessage("No camera found on this device.");
+          } else if (errorStr.includes("ReadableError") || errorStr.includes("TrackStartError") || errorStr.includes("Could not start video source")) {
+            setErrorMessage("Camera is being used by another application. Please close it and try again.");
           } else {
             setErrorMessage(STRINGS.profile.cameraStartFailed);
           }
         }
       };
 
-      // Increased delay to ensure DOM is ready and previous instances are cleared
+      // Delay to ensure DOM is ready
       const timer = setTimeout(startScanner, 800);
       
       return () => {
@@ -462,34 +484,67 @@ export default function Profile() {
 
     // 8. Download
     try {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          console.error("Failed to create image blob");
-          setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
-          return;
-        }
+      if (Capacitor.isNativePlatform()) {
+        const base64Data = canvas.toDataURL("image/png").split(',')[1];
+        const fileName = `QR_Card_${profile.fullName || "User"}.png`.replace(/[/\\?%*:|"<>]/g, '-');
         
         try {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `QR_Card_${profile.fullName || "User"}.png`.replace(/[/\\?%*:|"<>]/g, '-');
+          // Save to cache directory for reliable sharing
+          const result = await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: Directory.Cache,
+            recursive: true
+          });
+
+          // On native, sharing is the best way to "download" as it lets user save to gallery/drive
+          await Share.share({
+            title: 'QR Card',
+            text: 'Your QR Card has been generated.',
+            files: [result.uri],
+            dialogTitle: 'Save or Share QR Card'
+          });
           
-          // Append to body to ensure it works in all browsers
-          document.body.appendChild(link);
-          link.click();
-          
-          // Small delay before cleanup
-          setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
-          }, 200);
-        } catch (e) {
-          console.error("Download trigger failed", e);
-          setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
+          setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
+        } catch (fsErr) {
+          console.error("Filesystem save failed", fsErr);
+          // Fallback to share directly if saving fails
+          await Share.share({
+            title: 'QR Card',
+            url: canvas.toDataURL("image/png")
+          });
+          setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
         }
-      }, "image/png", 1.0);
+      } else {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            console.error("Failed to create image blob");
+            setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
+            return;
+          }
+          
+          try {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `QR_Card_${profile.fullName || "User"}.png`.replace(/[/\\?%*:|"<>]/g, '-');
+            
+            // Append to body to ensure it works in all browsers
+            document.body.appendChild(link);
+            link.click();
+            
+            // Small delay before cleanup
+            setTimeout(() => {
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
+            }, 200);
+          } catch (e) {
+            console.error("Download trigger failed", e);
+            setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
+          }
+        }, "image/png", 1.0);
+      }
     } catch (err) {
       console.error("Download failed", err);
       setToast({ message: STRINGS.profile.downloadFailed, type: 'error' });
@@ -505,23 +560,41 @@ export default function Profile() {
     const shareUrl = window.location.href;
 
     try {
-      // Try to share as file if supported
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve));
-      if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'qr.png', { type: 'image/png' })] })) {
-        const file = new File([blob], `QR_${profile.fullName || "User"}.png`, { type: 'image/png' });
-        await navigator.share({
-          files: [file],
-          title: 'My Profile QR',
-          text: shareText,
+      if (Capacitor.isNativePlatform()) {
+        const base64Data = canvas.toDataURL("image/png").split(',')[1];
+        const fileName = `QR_Share_${profile.fullName || "User"}.png`.replace(/[/\\?%*:|"<>]/g, '-');
+        
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache
         });
-      } else if (navigator.share) {
-        await navigator.share({
+
+        await Share.share({
           title: 'My Profile QR',
           text: shareText,
-          url: shareUrl
+          files: [result.uri],
+          dialogTitle: 'Share QR Code'
         });
       } else {
-        throw new Error('Share not supported');
+        // Try to share as file if supported
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve));
+        if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'qr.png', { type: 'image/png' })] })) {
+          const file = new File([blob], `QR_${profile.fullName || "User"}.png`, { type: 'image/png' });
+          await navigator.share({
+            files: [file],
+            title: 'My Profile QR',
+            text: shareText,
+          });
+        } else if (navigator.share) {
+          await navigator.share({
+            title: 'My Profile QR',
+            text: shareText,
+            url: shareUrl
+          });
+        } else {
+          throw new Error('Share not supported');
+        }
       }
     } catch (err) {
       // Fallback: Copy to clipboard
@@ -930,13 +1003,18 @@ export default function Profile() {
                               <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
                                 <AlertCircle className="w-6 h-6 text-red-500" />
                               </div>
-                              <p className="text-white font-bold text-[10px]">{errorMessage}</p>
+                              <p className="text-white font-bold text-[10px] leading-relaxed max-w-[200px]">{errorMessage}</p>
+                              {errorMessage === STRINGS.profile.cameraPermissionDenied && (
+                                <p className="text-white/60 text-[8px] max-w-[180px]">
+                                  If the prompt doesn't appear, check the lock icon in your browser address bar.
+                                </p>
+                              )}
                               <button 
                                 onClick={() => {
                                   setErrorMessage(null);
                                   setConnectionStatus('idle');
                                 }}
-                                className="px-4 py-2 bg-white text-black rounded-full text-[10px] font-bold active:scale-95 transition-all"
+                                className="px-6 py-2.5 bg-white text-black rounded-full text-[10px] font-bold active:scale-95 transition-all shadow-lg"
                               >
                                 {STRINGS.profile.tryAgain}
                               </button>
