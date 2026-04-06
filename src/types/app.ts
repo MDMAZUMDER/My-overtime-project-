@@ -28,7 +28,7 @@ export interface HistoryEntry {
   closedAt: string;
 }
 
-export type Language = 'bn' | 'en' | 'ar';
+export type Language = 'bn' | 'en' | 'ar' | 'ur';
 export type Currency = 'SAR';
 export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY';
 export type WeekStart = 'Sunday' | 'Monday';

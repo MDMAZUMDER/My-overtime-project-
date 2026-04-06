@@ -56,6 +56,14 @@ export default function Layout() {
 
     applyTheme(theme);
 
+    // Handle RTL for Arabic and Urdu
+    const currentSettings = StorageService.getSettings();
+    if (currentSettings.language === 'ar' || currentSettings.language === 'ur') {
+      document.documentElement.dir = 'rtl';
+    } else {
+      document.documentElement.dir = 'ltr';
+    }
+
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleSystemThemeChange = () => {
       if (theme === "system") {
@@ -72,6 +80,13 @@ export default function Layout() {
       const newSettings = StorageService.getSettings();
       setTheme(newSettings.appearance.theme);
       
+      // Handle RTL for Arabic and Urdu
+      if (newSettings.language === 'ar' || newSettings.language === 'ur') {
+        document.documentElement.dir = 'rtl';
+      } else {
+        document.documentElement.dir = 'ltr';
+      }
+
       // If security is disabled, always unlock
       if (!newSettings.security.enabled) {
         setIsLocked(false);

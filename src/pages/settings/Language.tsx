@@ -20,6 +20,7 @@ export default function LanguageSettings() {
     { id: "en", label: STRINGS.common.english },
     { id: "bn", label: STRINGS.common.bengali },
     { id: "ar", label: STRINGS.common.arabic },
+    { id: "ur", label: STRINGS.common.urdu },
   ];
 
   const handleSelect = (lang: Language) => {
