@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useStrings } from "../../hooks/useStrings";
 import { StorageService } from "../../services/storage";
 import { AppSettings, Currency } from "../../types/app";
 import { Info, CheckCircle2, AlertCircle, ArrowLeft, Save } from "lucide-react";
 import { calculateHourlyRate } from "../../lib/calculations";
 import { useNavigate } from "react-router-dom";
+import { ValidationTooltip } from "../../components/ui/ValidationTooltip";
 
 export default function OvertimeSettings() {
   const STRINGS = useStrings();
@@ -13,6 +14,14 @@ export default function OvertimeSettings() {
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
   const [activeRate, setActiveRate] = useState(calculateHourlyRate(settings));
   const [hasChanges, setHasChanges] = useState(false);
+  const [showValidation, setShowValidation] = useState<{ field: string | null, message: string | null }>({ field: null, message: null });
+  const validationTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerValidation = (field: string, message: string) => {
+    setShowValidation({ field, message });
+    if (validationTimer.current) clearTimeout(validationTimer.current);
+    validationTimer.current = setTimeout(() => setShowValidation({ field: null, message: null }), 3000);
+  };
 
   useEffect(() => {
     const isChanged = JSON.stringify(settings.overtime) !== JSON.stringify(initialSettings.overtime);
@@ -69,19 +78,26 @@ export default function OvertimeSettings() {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 relative">
             <label className="text-sm font-medium text-on-surface-variant ml-1">
               {STRINGS.settings.basicSalary}
             </label>
             <input
               type="number"
               required
-              onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+              onInvalid={(e) => {
+                e.preventDefault();
+                triggerValidation('basicSalary', STRINGS.common.requiredField);
+              }}
               onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
               value={settings.overtime.basicSalary || ""}
               onChange={(e) => updateSettings({ basicSalary: parseFloat(e.target.value) || 0 })}
               placeholder="0.00"
               className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+            />
+            <ValidationTooltip 
+              isVisible={showValidation.field === 'basicSalary'} 
+              message={showValidation.message} 
             />
           </div>
         </div>

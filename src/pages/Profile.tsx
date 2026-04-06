@@ -12,6 +12,7 @@ import { db, doc, setDoc, getDoc, handleFirestoreError, OperationType } from "..
 import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
 import { QRCodeCanvas } from "qrcode.react";
 import { useNavigate } from "react-router-dom";
+import { ValidationTooltip } from "../components/ui/ValidationTooltip";
 
 export default function Profile() {
   const STRINGS = useStrings();
@@ -34,6 +35,15 @@ export default function Profile() {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [showValidation, setShowValidation] = useState<{ field: string | null, message: string | null }>({ field: null, message: null });
+  const validationTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerValidation = (field: string, message: string) => {
+    setShowValidation({ field, message });
+    if (validationTimer.current) clearTimeout(validationTimer.current);
+    validationTimer.current = setTimeout(() => setShowValidation({ field: null, message: null }), 3000);
+  };
+
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
@@ -489,20 +499,20 @@ export default function Profile() {
         const fileName = `QR_Card_${profile.fullName || "User"}.png`.replace(/[/\\?%*:|"<>]/g, '-');
         
         try {
-          // Save to cache directory for reliable sharing
+          // Save to Documents directory for more permanent storage
           const result = await Filesystem.writeFile({
             path: fileName,
             data: base64Data,
-            directory: Directory.Cache,
+            directory: Directory.Documents,
             recursive: true
           });
 
-          // On native, sharing is the best way to "download" as it lets user save to gallery/drive
+          // On native, sharing with the file URI is the best way to let user save to gallery
           await Share.share({
-            title: 'QR Card',
+            title: 'My QR Card',
             text: 'Your QR Card has been generated.',
             files: [result.uri],
-            dialogTitle: 'Save or Share QR Card'
+            dialogTitle: 'Save to Gallery or Share'
           });
           
           setToast({ message: STRINGS.profile.downloadQr, type: 'success' });
@@ -739,14 +749,17 @@ export default function Profile() {
         {isEditing ? (
           <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-5 shadow-sm">
             <div className="space-y-4">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-1">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <input
                     type="text"
                     required
-                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+                    onInvalid={(e) => {
+                      e.preventDefault();
+                      triggerValidation('fullName', STRINGS.common.requiredField);
+                    }}
                     onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
                     value={profile.fullName}
                     onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
@@ -754,16 +767,23 @@ export default function Profile() {
                     placeholder="Enter your name"
                   />
                 </div>
+                <ValidationTooltip 
+                  isVisible={showValidation.field === 'fullName'} 
+                  message={showValidation.message} 
+                />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-1">Employee ID</label>
                 <div className="relative">
                   <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <input
                     type="text"
                     required
-                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity(STRINGS.common.requiredField)}
+                    onInvalid={(e) => {
+                      e.preventDefault();
+                      triggerValidation('employeeId', STRINGS.common.requiredField);
+                    }}
                     onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
                     value={profile.employeeId}
                     onChange={(e) => {
@@ -785,6 +805,10 @@ export default function Profile() {
                     placeholder="SRH - 12345"
                   />
                 </div>
+                <ValidationTooltip 
+                  isVisible={showValidation.field === 'employeeId'} 
+                  message={showValidation.message} 
+                />
               </div>
             </div>
 
