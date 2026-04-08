@@ -58,7 +58,18 @@ jobs:
       - name: Build Debug APK
         run: gradle assembleDebug
 
-      # 11. Upload APK
+      # 11. Create OTA Bundle (dist.zip)
+      - name: Create OTA Bundle
+        run: zip -r dist.zip dist
+
+      # 12. Upload OTA Bundle
+      - name: Upload OTA Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: overtime-ota-bundle
+          path: dist.zip
+
+      # 13. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

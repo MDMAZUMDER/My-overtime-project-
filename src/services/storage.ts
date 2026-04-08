@@ -80,9 +80,9 @@ export const StorageService = {
     window.dispatchEvent(new Event("historyChanged"));
   },
 
-  closeCalculation(totalHours: number, totalEarnings: number) {
+  closeCalculation(totalHours: number, totalEarnings: number): HistoryEntry | null {
     const entries = this.getEntries();
-    if (entries.length === 0) return;
+    if (entries.length === 0) return null;
 
     const sortedEntries = [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const startDate = sortedEntries[0].date;
@@ -104,6 +104,8 @@ export const StorageService = {
 
     // Clear current entries
     this.saveEntries([]);
+    
+    return historyEntry;
   },
 
   clearAllData() {

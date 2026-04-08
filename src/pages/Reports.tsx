@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { calculateTotalStats } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
 import { Tooltip } from "../components/ui/Tooltip";
+import { useFirebase } from "../components/FirebaseProvider";
+import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType } from "../firebase";
 
 export default function Reports() {
   const STRINGS = useStrings();
@@ -18,6 +20,7 @@ export default function Reports() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const { user, profile } = useFirebase();
   const settings = StorageService.getSettings();
 
   useEffect(() => {
@@ -69,8 +72,37 @@ export default function Reports() {
     }
   };
 
-  const handleCloseCalculation = () => {
-    StorageService.closeCalculation(overallStats.totalHours, overallStats.totalEarnings);
+  const handleCloseCalculation = async () => {
+    const historyEntry = StorageService.closeCalculation(overallStats.totalHours, overallStats.totalEarnings);
+    
+    if (historyEntry && user) {
+      try {
+        // 1. Save history to Firebase
+        await setDoc(doc(db, 'history', historyEntry.id), {
+          ...historyEntry,
+          userId: user.uid,
+          userEmail: user.email,
+          userName: profile?.fullName,
+        });
+
+        // 2. Delete current entries from Firebase (since they are now in history)
+        // We do this one by one or we could mark them as closed. 
+        // For simplicity, let's delete them from the main collection.
+        const deletePromises = historyEntry.entries.map(e => deleteDoc(doc(db, 'entries', e.id)));
+        await Promise.all(deletePromises);
+
+        // 3. If connected to a company, also delete from company entries
+        if (profile?.companyId) {
+          const companyDeletePromises = historyEntry.entries.map(e => 
+            deleteDoc(doc(db, 'companies', profile.companyId!, 'entries', e.id))
+          );
+          await Promise.all(companyDeletePromises);
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, 'history');
+      }
+    }
+
     setShowCloseConfirm(false);
     setActiveTab("history");
   };
