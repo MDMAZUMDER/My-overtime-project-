@@ -1,4 +1,4 @@
-package com.ottracker.app;
+package My.overtime.app;
 
 import com.getcapacitor.BridgeActivity;
 

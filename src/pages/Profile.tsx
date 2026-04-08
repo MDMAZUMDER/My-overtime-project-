@@ -1,5 +1,5 @@
 import { useState, useEffect, ChangeEvent, useRef, ReactNode } from "react";
-import { Camera, Save, User, IdCard, Briefcase, Calendar, MapPin, Building2, QrCode, X, CheckCircle2, Shield, Image as ImageIcon, AlertCircle, Share2, Download, ArrowLeft, MoreVertical, Plus, Copy } from "lucide-react";
+import { Camera, Save, User, IdCard, Building2, QrCode, X, CheckCircle2, Image as ImageIcon, AlertCircle, Share2, Download, ArrowLeft, Copy } from "lucide-react";
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -8,7 +8,7 @@ import { StorageService } from "../services/storage";
 import { UserProfile } from "../types/app";
 import { cn } from "../lib/utils";
 import { useFirebase } from "../components/FirebaseProvider";
-import { db, doc, setDoc, getDoc, handleFirestoreError, OperationType } from "../firebase";
+import { db, doc, setDoc, getDoc, handleFirestoreError, OperationType, onSnapshot, query, collection, where } from "../firebase";
 import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
 import { QRCodeCanvas } from "qrcode.react";
 import { useNavigate } from "react-router-dom";
@@ -36,6 +36,8 @@ export default function Profile() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [showValidation, setShowValidation] = useState<{ field: string | null, message: string | null }>({ field: null, message: null });
+  const [scannedCompany, setScannedCompany] = useState<{ id: string, name: string } | null>(null);
+  const [pendingRequest, setPendingRequest] = useState<any>(null);
   const validationTimer = useRef<NodeJS.Timeout | null>(null);
 
   const triggerValidation = (field: string, message: string) => {
@@ -72,6 +74,29 @@ export default function Profile() {
       setIsEditing(true);
     }
   }, [firebaseProfile, user?.uid]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen for pending connection requests
+    const q = query(
+      collection(db, 'connection_requests'),
+      where('userId', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setPendingRequest(snapshot.docs[0].data());
+      } else {
+        setPendingRequest(null);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'connection_requests');
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     if (toast) {
@@ -219,24 +244,8 @@ export default function Profile() {
       const companyDoc = await getDoc(doc(db, 'companies', decodedText));
       if (companyDoc.exists()) {
         const companyData = companyDoc.data();
-        const updatedProfile = { 
-          ...profile, 
-          companyId: decodedText, 
-          companyName: companyData.name 
-        };
-        
-        StorageService.saveProfile(updatedProfile);
-        setProfile(updatedProfile);
-        
-        if (user) {
-          await setDoc(doc(db, 'users', user.uid), updatedProfile, { merge: true });
-        }
-        
-        setConnectionStatus('success');
-        setTimeout(() => {
-          setShowQrView(false);
-          setConnectionStatus('idle');
-        }, 2000);
+        setScannedCompany({ id: decodedText, name: companyData.name });
+        setConnectionStatus('idle');
       } else {
         setConnectionStatus('error');
         setErrorMessage(STRINGS.profile.companyNotFound);
@@ -253,6 +262,37 @@ export default function Profile() {
         setConnectionStatus('idle');
         setErrorMessage(null);
       }, 3000);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!scannedCompany || !user) return;
+    
+    setConnectionStatus('connecting');
+    try {
+      // Create a connection request in Firestore
+      const requestId = `${user.uid}_${scannedCompany.id}`;
+      await setDoc(doc(db, 'connection_requests', requestId), {
+        userId: user.uid,
+        companyId: scannedCompany.id,
+        userName: profile.fullName,
+        companyName: scannedCompany.name,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+
+      setConnectionStatus('success');
+      setToast({ message: STRINGS.profile.requestSent, type: 'success' });
+      
+      setTimeout(() => {
+        setShowQrView(false);
+        setConnectionStatus('idle');
+        setScannedCompany(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Error sending connection request:', error);
+      setConnectionStatus('error');
+      setErrorMessage(STRINGS.profile.connectionError);
     }
   };
 
@@ -863,31 +903,30 @@ export default function Profile() {
             <ProfileField 
               icon={Building2} 
               label="Company" 
-              value={profile.companyName || "Not Connected"} 
+              value={profile.companyName || (pendingRequest ? pendingRequest.companyName : "Not Connected")} 
               colorClass="text-indigo-500"
               bgClass="bg-indigo-50"
               action={!profile.companyId && (
-                <button 
-                  onClick={() => {
-                    setQrTab('scan');
-                    setShowQrView(true);
-                  }}
-                  className="px-3 py-1.5 bg-primary text-white rounded-lg text-[10px] font-bold shadow-sm"
-                >
-                  Connect
-                </button>
+                pendingRequest ? (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{STRINGS.profile.pending}</span>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      setQrTab('scan');
+                      setShowQrView(true);
+                    }}
+                    className="px-3 py-1.5 bg-primary text-white rounded-lg text-[10px] font-bold shadow-sm"
+                  >
+                    {STRINGS.profile.connect}
+                  </button>
+                )
               )}
             />
 
-            <div className="pt-6">
-              <button
-                onClick={() => signOut()}
-                className="w-full flex items-center justify-center space-x-2 p-4 text-red-500 font-bold text-sm hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"
-              >
-                <X className="w-4 h-4" />
-                <span>Sign Out</span>
-              </button>
-            </div>
+            {/* Sign Out button removed as requested */}
           </div>
         )}
       </div>
@@ -1044,6 +1083,34 @@ export default function Profile() {
                               </button>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {scannedCompany && connectionStatus === 'idle' && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 text-center">
+                          <div className="bg-white rounded-2xl p-6 w-full space-y-4">
+                            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                              <Building2 className="w-6 h-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900">{scannedCompany.name}</h3>
+                              <p className="text-xs text-gray-500 mt-1">{STRINGS.profile.connectToCompany}</p>
+                            </div>
+                            <div className="flex space-x-3">
+                              <button
+                                onClick={() => setScannedCompany(null)}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm"
+                              >
+                                {STRINGS.common.cancel}
+                              </button>
+                              <button
+                                onClick={handleConnect}
+                                className="flex-1 py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20"
+                              >
+                                {STRINGS.profile.connect}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

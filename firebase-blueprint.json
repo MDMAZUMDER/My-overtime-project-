@@ -12,17 +12,6 @@
       },
       "required": ["fullName"]
     },
-    "Company": {
-      "title": "Company",
-      "description": "A company that tracks employee overtime",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string", "description": "The name of the company" },
-        "adminUid": { "type": "string", "description": "The UID of the company admin" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "When the company was created" }
-      },
-      "required": ["name", "adminUid"]
-    },
     "OvertimeEntry": {
       "title": "OvertimeEntry",
       "description": "An individual overtime entry",
@@ -47,14 +36,6 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "User profiles"
-    },
-    "/companies/{companyId}": {
-      "schema": "Company",
-      "description": "Company data"
-    },
-    "/companies/{companyId}/entries/{entryId}": {
-      "schema": "OvertimeEntry",
-      "description": "Company-scoped overtime entries"
     }
   }
 }

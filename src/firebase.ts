@@ -44,6 +44,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
+  // If the error is "the client is offline", it might be a config issue
+  if (errInfo.error.includes('the client is offline')) {
+    console.error("Please check your Firebase configuration. Ensure the database ID and project ID are correct.");
+  }
   throw new Error(JSON.stringify(errInfo));
 }
 

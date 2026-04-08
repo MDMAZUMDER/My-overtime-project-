@@ -55,12 +55,6 @@ service cloud.firestore {
              data.status in ['pending', 'approved', 'rejected'];
     }
 
-    // Check if user is admin of a specific company
-    function isAdmin(companyId) {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/companies/$(companyId)).data.adminUid == request.auth.uid;
-    }
-
     // ===============================================================
     // Rules
     // ===============================================================
@@ -74,25 +68,6 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidEntry(request.resource.data);
       allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidEntry(request.resource.data) && request.resource.data.userId == resource.data.userId;
       allow delete: if isAuthenticated() && isOwner(resource.data.userId);
-    }
-
-    // Company Data
-    match /companies/{companyId} {
-      // Anyone can read company basic info (for joining)
-      allow read: if isAuthenticated();
-      // Only the creator can create/update company info
-      allow create: if isAuthenticated() && request.resource.data.adminUid == request.auth.uid;
-      allow update: if isAdmin(companyId);
-      
-      // Company Entries
-      match /entries/{entryId} {
-        // Users can write to their company's entry collection
-        allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
-        // Admins can read all entries in their company
-        allow read: if isAdmin(companyId) || (isAuthenticated() && resource.data.uid == request.auth.uid);
-        // Users can update/delete their own entries
-        allow update, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
-      }
     }
   }
 }

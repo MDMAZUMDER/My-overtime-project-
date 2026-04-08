@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, onAuthStateChanged, User, loginAnonymously, db, doc, getDoc, setDoc, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut } from '../firebase';
+import { auth, onAuthStateChanged, User, loginAnonymously, db, doc, getDoc, setDoc, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, handleFirestoreError, OperationType } from '../firebase';
 import { UserProfile } from '../types/app';
 
 interface FirebaseContextType {
@@ -47,16 +47,20 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (currentUser) {
         setUser(currentUser);
         // Fetch profile from Firestore
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          setProfile(userDoc.data() as UserProfile);
-        } else {
-          // Create initial profile if it doesn't exist
-          const initialProfile: UserProfile = {
-            fullName: currentUser.displayName || 'User',
-          };
-          await setDoc(doc(db, 'users', currentUser.uid), initialProfile);
-          setProfile(initialProfile);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            setProfile(userDoc.data() as UserProfile);
+          } else {
+            // Create initial profile if it doesn't exist
+            const initialProfile: UserProfile = {
+              fullName: currentUser.displayName || 'User',
+            };
+            await setDoc(doc(db, 'users', currentUser.uid), initialProfile);
+            setProfile(initialProfile);
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
         }
       } else {
         // Automatically login anonymously if no user

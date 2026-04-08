@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { User, Globe, Bell, Shield, Database, ChevronRight, Clock, Sun, Moon, SunMoon, ArrowLeft } from "lucide-react";
+import { User, Globe, Bell, Shield, Database, ChevronRight, Clock, Sun, Moon, SunMoon, ArrowLeft, ShieldCheck } from "lucide-react";
 import { useStrings } from "../hooks/useStrings";
 import { Link, useNavigate } from "react-router-dom";
 import { StorageService } from "../services/storage";
 import { Theme } from "../types/app";
+import { useFirebase } from "../components/FirebaseProvider";
 
 const RiyalIcon = ({ className }: { className?: string }) => (
   <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
@@ -14,6 +15,7 @@ const RiyalIcon = ({ className }: { className?: string }) => (
 export default function Settings() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
+  const { profile } = useFirebase();
   const [settings, setSettings] = useState(StorageService.getSettings());
 
   const toggleTheme = () => {

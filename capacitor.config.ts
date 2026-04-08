@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.ottracker.app',
+  appId: 'My.overtime.app',
   appName: 'overtime',
   webDir: 'dist',
   android: {
