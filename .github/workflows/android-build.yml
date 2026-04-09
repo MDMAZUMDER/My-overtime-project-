@@ -49,8 +49,11 @@ jobs:
       # 8. Sync Capacitor (Updates Android project with web assets)
       - name: Capacitor Sync
         run: |
-          # For flat structure where android project is in root
-          npx cap sync
+          echo "Listing files to debug structure..."
+          ls -R . | grep -E "android|app|build.gradle" | head -n 20
+          
+          echo "Running Capacitor Sync..."
+          npx cap sync android --verbose || npx cap sync --verbose
 
       # 9. Clean project
       - name: Clean Project
