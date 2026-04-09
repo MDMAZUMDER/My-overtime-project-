@@ -58,16 +58,23 @@ jobs:
       - name: Build Debug APK
         run: gradle assembleDebug
 
-      # 11. Create OTA Bundle (dist.zip)
-      - name: Create OTA Bundle
-        run: zip -r dist.zip dist
+      # 11. Prepare Firebase Hosting Files
+      - name: Prepare Hosting Files
+        run: |
+          mkdir -p public_hosting
+          zip -r public_hosting/bundle.zip dist
+          VERSION=$(node -p "require('./package.json').version")
+          echo "{\"version\": \"$VERSION\", \"url\": \"https://my-overtime-app.web.app/bundle.zip\"}" > public_hosting/version.json
 
-      # 12. Upload OTA Bundle
-      - name: Upload OTA Bundle
-        uses: actions/upload-artifact@v4
+      # 12. Deploy to Firebase Hosting
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          name: overtime-ota-bundle
-          path: dist.zip
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_MY_OVERTIME_APP }}'
+          channelId: live
+          projectId: my-overtime-app
+        continue-on-error: true
 
       # 13. Upload APK
       - name: Upload APK

@@ -6,6 +6,8 @@ import { StorageService } from "../services/storage";
 import { Theme } from "../types/app";
 import { useFirebase } from "../components/FirebaseProvider";
 
+import { APP_VERSION } from "../constants/version";
+
 const RiyalIcon = ({ className }: { className?: string }) => (
   <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
     ﷼
@@ -93,7 +95,7 @@ export default function Settings() {
       </div>
 
       <div className="text-center pt-8 pb-4 space-y-1">
-        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} 1.2.1</p>
+        <p className="text-xs text-on-surface-variant opacity-30 font-medium">{STRINGS.settings.version} {APP_VERSION}</p>
         <p className="text-[10px] text-on-surface-variant opacity-40">
           {STRINGS.settings.developedBy} <a href="https://www.facebook.com/share/1StfHpX9MC/" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">MASUM</a>
         </p>
