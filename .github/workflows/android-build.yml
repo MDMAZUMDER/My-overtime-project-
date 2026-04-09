@@ -53,7 +53,8 @@ jobs:
           ls -R . | grep -E "android|app|build.gradle" | head -n 20
           
           echo "Running Capacitor Sync..."
-          npx cap sync android --verbose || npx cap sync --verbose
+          # Capacitor CLI v6 uses -v for verbose, but let's use standard sync first
+          npx cap sync
 
       # 9. Clean project
       - name: Clean Project
