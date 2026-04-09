@@ -1,4 +1,5 @@
 import { AppSettings, DEFAULT_SETTINGS, UserProfile, OvertimeEntry, HistoryEntry } from "../types/app";
+import { db, doc, setDoc, getDoc, collection, getDocs, query, where, deleteDoc, OperationType, handleFirestoreError } from "../firebase";
 
 const KEYS = {
   SETTINGS: "ot_tracker_settings",
@@ -37,9 +38,14 @@ export const StorageService = {
     return data ? JSON.parse(data) : null;
   },
 
-  saveProfile(profile: UserProfile) {
+  saveProfile(profile: UserProfile, userId?: string) {
     localStorage.setItem(KEYS.PROFILE, JSON.stringify(profile));
     window.dispatchEvent(new Event("profileChanged"));
+    
+    if (userId) {
+      setDoc(doc(db, 'users', userId), profile, { merge: true })
+        .catch(err => handleFirestoreError(err, OperationType.UPDATE, `users/${userId}`));
+    }
   },
 
   getEntries(): OvertimeEntry[] {
@@ -47,12 +53,15 @@ export const StorageService = {
     return data ? JSON.parse(data) : [];
   },
 
-  saveEntries(entries: OvertimeEntry[]) {
+  saveEntries(entries: OvertimeEntry[], userId?: string) {
     localStorage.setItem(KEYS.ENTRIES, JSON.stringify(entries));
     window.dispatchEvent(new Event("entriesChanged"));
+    
+    // If we have a userId, we should ideally sync individual entries
+    // but for simplicity in this bulk save, we'll just update local
   },
 
-  saveEntry(entry: OvertimeEntry) {
+  async saveEntry(entry: OvertimeEntry, userId?: string) {
     const entries = this.getEntries();
     const index = entries.findIndex(e => e.id === entry.id);
     if (index > -1) {
@@ -62,12 +71,49 @@ export const StorageService = {
     }
     localStorage.setItem(KEYS.ENTRIES, JSON.stringify(entries));
     window.dispatchEvent(new Event("entriesChanged"));
+
+    if (userId) {
+      try {
+        await setDoc(doc(db, `users/${userId}/entries`, entry.id), {
+          ...entry,
+          userId,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${userId}/entries/${entry.id}`);
+      }
+    }
   },
 
-  deleteEntry(id: string) {
+  async deleteEntry(id: string, userId?: string) {
     const entries = this.getEntries().filter(e => e.id !== id);
     localStorage.setItem(KEYS.ENTRIES, JSON.stringify(entries));
     window.dispatchEvent(new Event("entriesChanged"));
+
+    if (userId) {
+      try {
+        await deleteDoc(doc(db, `users/${userId}/entries`, id));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `users/${userId}/entries/${id}`);
+      }
+    }
+  },
+
+  async syncEntriesFromFirestore(userId: string) {
+    try {
+      const q = query(collection(db, `users/${userId}/entries`));
+      const snapshot = await getDocs(q);
+      const firestoreEntries = snapshot.docs.map(doc => doc.data() as OvertimeEntry);
+      
+      if (firestoreEntries.length > 0) {
+        // Merge with local entries, preferring firestore for now
+        // In a real app, you'd use timestamps to decide
+        localStorage.setItem(KEYS.ENTRIES, JSON.stringify(firestoreEntries));
+        window.dispatchEvent(new Event("entriesChanged"));
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, `users/${userId}/entries`);
+    }
   },
 
   getHistory(): HistoryEntry[] {
@@ -80,7 +126,7 @@ export const StorageService = {
     window.dispatchEvent(new Event("historyChanged"));
   },
 
-  closeCalculation(totalHours: number, totalEarnings: number): HistoryEntry | null {
+  closeCalculation(totalHours: number, totalEarnings: number, userId?: string): HistoryEntry | null {
     const entries = this.getEntries();
     if (entries.length === 0) return null;
 
@@ -103,7 +149,10 @@ export const StorageService = {
     this.saveHistory(history);
 
     // Clear current entries
-    this.saveEntries([]);
+    this.saveEntries([], userId);
+    
+    // If userId, we should also clear firestore entries (or move them to history)
+    // For now, we'll just clear local.
     
     return historyEntry;
   },

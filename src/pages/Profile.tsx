@@ -358,14 +358,7 @@ export default function Profile() {
       employeeId: profile.employeeId || user?.uid || ""
     };
 
-    StorageService.saveProfile(finalProfile);
-    if (user) {
-      try {
-        await setDoc(doc(db, 'users', user.uid), finalProfile, { merge: true });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
-      }
-    }
+    StorageService.saveProfile(finalProfile, user?.uid);
     setProfile(finalProfile);
     setLastSavedProfile(JSON.parse(JSON.stringify(finalProfile)));
     setIsEditing(false);

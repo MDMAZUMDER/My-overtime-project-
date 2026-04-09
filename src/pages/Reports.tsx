@@ -9,7 +9,7 @@ import { calculateTotalStats } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
 import { Tooltip } from "../components/ui/Tooltip";
 import { useFirebase } from "../components/FirebaseProvider";
-import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType } from "../firebase";
+import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType, collection, getDocs, query, where } from "../firebase";
 
 export default function Reports() {
   const STRINGS = useStrings();
@@ -65,15 +65,15 @@ export default function Reports() {
     return calculateTotalStats(entries, settings);
   }, [entries, settings]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deleteId) {
-      StorageService.deleteEntry(deleteId);
+      await StorageService.deleteEntry(deleteId, user?.uid);
       setDeleteId(null);
     }
   };
 
   const handleCloseCalculation = async () => {
-    const historyEntry = StorageService.closeCalculation(overallStats.totalHours, overallStats.totalEarnings);
+    const historyEntry = StorageService.closeCalculation(overallStats.totalHours, overallStats.totalEarnings, user?.uid);
     
     if (historyEntry && user) {
       try {
@@ -88,14 +88,20 @@ export default function Reports() {
         // 2. Delete current entries from Firebase (since they are now in history)
         // We do this one by one or we could mark them as closed. 
         // For simplicity, let's delete them from the main collection.
-        const deletePromises = historyEntry.entries.map(e => deleteDoc(doc(db, 'entries', e.id)));
+        // The StorageService.closeCalculation already cleared local, but we need to clear Firestore entries collection
+        // In a real app, we'd move them to a history subcollection.
+        // For now, let's just clear the entries collection for this user.
+        const entriesRef = collection(db, `users/${user.uid}/entries`);
+        const snapshot = await getDocs(entriesRef);
+        const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
         await Promise.all(deletePromises);
 
         // 3. If connected to a company, also delete from company entries
         if (profile?.companyId) {
-          const companyDeletePromises = historyEntry.entries.map(e => 
-            deleteDoc(doc(db, 'companies', profile.companyId!, 'entries', e.id))
-          );
+          const companyEntriesRef = collection(db, `companies/${profile.companyId}/entries`);
+          const q = query(companyEntriesRef, where('userId', '==', user.uid));
+          const companySnapshot = await getDocs(q);
+          const companyDeletePromises = companySnapshot.docs.map(d => deleteDoc(d.ref));
           await Promise.all(companyDeletePromises);
         }
       } catch (error) {

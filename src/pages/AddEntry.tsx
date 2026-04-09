@@ -72,30 +72,7 @@ export default function AddEntry() {
       status: 'pending'
     };
 
-    StorageService.saveEntry(newEntry);
-
-    // Sync to Firebase if user is logged in
-    if (user) {
-      const entryData = {
-        ...newEntry,
-        userId: user.uid,
-        userEmail: user.email,
-        userName: profile?.fullName,
-        updatedAt: serverTimestamp()
-      };
-
-      try {
-        // Save to user's private collection
-        await setDoc(doc(db, 'entries', newEntry.id), entryData);
-
-        // If connected to a company, sync to company collection as well
-        if (profile?.companyId) {
-          await setDoc(doc(db, 'companies', profile.companyId, 'entries', newEntry.id), entryData);
-        }
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, `entries/${newEntry.id}`);
-      }
-    }
+    await StorageService.saveEntry(newEntry, user?.uid);
 
     navigate("/reports");
   };

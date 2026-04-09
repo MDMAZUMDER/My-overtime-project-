@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, onAuthStateChanged, User, loginAnonymously, db, doc, getDoc, setDoc, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, handleFirestoreError, OperationType } from '../firebase';
 import { UserProfile } from '../types/app';
+import { StorageService } from '../services/storage';
 
 interface FirebaseContextType {
   user: User | null;
@@ -50,7 +51,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         try {
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
-            setProfile(userDoc.data() as UserProfile);
+            const firestoreProfile = userDoc.data() as UserProfile;
+            setProfile(firestoreProfile);
+            StorageService.saveProfile(firestoreProfile);
           } else {
             // Create initial profile if it doesn't exist
             const initialProfile: UserProfile = {
@@ -58,7 +61,11 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             };
             await setDoc(doc(db, 'users', currentUser.uid), initialProfile);
             setProfile(initialProfile);
+            StorageService.saveProfile(initialProfile);
           }
+          
+          // Sync entries
+          await StorageService.syncEntriesFromFirestore(currentUser.uid);
         } catch (error) {
           handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
         }
