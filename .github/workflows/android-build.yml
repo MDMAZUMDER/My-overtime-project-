@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: 'npm'
 
       # 3. Install Dependencies
@@ -49,12 +49,11 @@ jobs:
       # 8. Sync Capacitor (Updates Android project with web assets)
       - name: Capacitor Sync
         run: |
-          echo "Listing files to debug structure..."
-          ls -R . | grep -E "android|app|build.gradle" | head -n 20
+          echo "Checking Capacitor platforms..."
+          ./node_modules/.bin/cap ls
           
           echo "Running Capacitor Sync..."
-          # Capacitor CLI v6 uses -v for verbose, but let's use standard sync first
-          npx cap sync
+          npm run sync -- android || npm run sync
 
       # 9. Clean project
       - name: Clean Project
