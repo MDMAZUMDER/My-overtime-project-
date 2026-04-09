@@ -145,7 +145,17 @@ export default function Reports() {
           </button>
           <h1 className="text-2xl font-bold text-on-surface">{STRINGS.tabs.reports}</h1>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+          {entries.length > 0 && (
+            <button
+              onClick={() => setShowCloseConfirm(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary/10 text-primary text-xs font-bold rounded-full hover:bg-primary/20 transition-all active:scale-95 border border-primary/20"
+              title={STRINGS.settings.closeCalculation}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{STRINGS.settings.closeCalculation}</span>
+            </button>
+          )}
           <Tooltip content={STRINGS.reports.downloadPDF} position="bottom">
             <button
               onClick={() => handleExport('open')}
@@ -158,42 +168,38 @@ export default function Reports() {
         </div>
       </header>
 
+      {/* Summary Card with integrated Close Action */}
       {activeTab !== 'history' && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex items-center space-x-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Clock className="w-4 h-4 text-primary" />
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-secondary/5 border border-outline/10 rounded-[32px] p-6 shadow-sm">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl" />
+          
+          <div className="relative space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-1">{STRINGS.reports.otEarnings}</p>
+                <div className="flex items-baseline space-x-1">
+                  <span className="text-sm font-bold text-primary/60">{settings.overtime.currency}</span>
+                  <span className="text-3xl font-black text-on-surface tracking-tight">{overallStats.totalEarnings.toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-1 opacity-60">{STRINGS.dashboard.totalHours}</p>
+                <p className="text-xl font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}<span className="text-xs ml-0.5 opacity-40">h</span></p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.dashboard.totalHours}</p>
-              <p className="text-sm font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}h</p>
-            </div>
-          </div>
-          <div className="bg-secondary/5 border border-secondary/10 p-4 rounded-2xl flex items-center space-x-3">
-            <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
-              ﷼
-            </div>
-            <div>
-              <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.otEarnings}</p>
-              <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {overallStats.totalEarnings.toFixed(2)}</p>
-            </div>
-          </div>
-          <div className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl flex items-center space-x-3">
-            <div className="p-2 bg-surface rounded-xl">
-              <TrendingUp className="w-4 h-4 text-on-surface-variant opacity-60" />
-            </div>
-            <div>
-              <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.basicSalary}</p>
-              <p className="text-sm font-bold text-on-surface">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
-            </div>
-          </div>
-          <div className="bg-primary-container p-4 rounded-2xl flex items-center space-x-3 shadow-sm border border-primary/10">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <TrendingUp className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-[10px] text-primary uppercase font-bold tracking-wider opacity-60">{STRINGS.reports.totalPayout}</p>
-              <p className="text-sm font-bold text-primary">{settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}</p>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-outline/5">
+              <div>
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider opacity-50 mb-1">{STRINGS.reports.basicSalary}</p>
+                <p className="text-sm font-bold text-on-surface/80">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider opacity-50 mb-1">{STRINGS.reports.totalPayout}</p>
+                <p className="text-sm font-bold text-primary">
+                  {settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -219,30 +225,6 @@ export default function Reports() {
       <div className="space-y-4">
         {activeTab === 'history' ? (
           <div className="space-y-4">
-            {entries.length > 0 && (
-              <div className="bg-primary/5 border border-primary/10 p-5 rounded-3xl flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-primary/10 rounded-xl">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-on-surface">
-                      {STRINGS.settings.closeMonthAndStartNew}
-                    </h3>
-                    <p className="text-[10px] text-on-surface-variant opacity-60">
-                      {STRINGS.settings.closeCalculationDesc}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCloseConfirm(true)}
-                  className="px-4 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-md shadow-primary/20 active:scale-95 transition-all"
-                >
-                  {STRINGS.settings.closeCalculation}
-                </button>
-              </div>
-            )}
-            
             {history.length > 0 ? (
             history.map((item) => (
               <div key={item.id} className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3">

@@ -48,7 +48,13 @@ jobs:
 
       # 8. Sync Capacitor (Updates Android project with web assets)
       - name: Capacitor Sync
-        run: npx cap sync android
+        run: |
+          if [ -d "android" ]; then
+            npx cap sync android
+          else
+            # Fallback if android folder is not standard
+            npx cap sync
+          fi
 
       # 9. Clean project
       - name: Clean Project
