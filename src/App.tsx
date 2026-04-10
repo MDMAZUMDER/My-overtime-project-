@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import AddEntry from "./pages/AddEntry";
@@ -25,6 +25,27 @@ import DataManagement from "./pages/settings/DataManagement";
 import AppearanceSettings from "./pages/settings/Appearance";
 
 import { APP_VERSION } from "./constants/version";
+
+function BackButtonHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const backButtonListener = CapApp.addListener('backButton', ({ canGoBack }) => {
+      if (location.pathname === '/') {
+        CapApp.exitApp();
+      } else {
+        navigate(-1);
+      }
+    });
+
+    return () => {
+      backButtonListener.then(l => l.remove());
+    };
+  }, [location.pathname, navigate]);
+
+  return null;
+}
 
 export default function App() {
   useEffect(() => {
@@ -91,6 +112,7 @@ export default function App() {
   return (
     <FirebaseProvider>
       <BrowserRouter>
+        <BackButtonHandler />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
