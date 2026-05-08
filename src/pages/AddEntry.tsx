@@ -63,11 +63,18 @@ export default function AddEntry() {
       return;
     }
 
+    const today = new Date().toISOString().split('T')[0];
+    if (entry.date > today) {
+      alert(STRINGS.addEntry?.futureDateError || "Future dates are not allowed for overtime.");
+      return;
+    }
+
     const entryId = id || crypto.randomUUID();
     const newEntry: OvertimeEntry = {
       id: entryId,
       date: entry.date,
       hours: Number(entry.hours),
+      rate: entry.rate || hourlyRate, // Save current rate
       note: entry.note || "",
       status: 'pending'
     };
@@ -96,6 +103,7 @@ export default function AddEntry() {
           <input
             type="date"
             required
+            max={new Date().toISOString().split('T')[0]}
             onInvalid={(e) => {
               e.preventDefault();
               triggerValidation('date', STRINGS.common.requiredField);

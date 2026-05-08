@@ -14,6 +14,7 @@ export interface OvertimeEntry {
   id: string;
   date: string; // ISO string (YYYY-MM-DD)
   hours: number;
+  rate?: number; // Store historical rate at the time of entry
   note?: string;
   status?: 'pending' | 'approved' | 'rejected';
 }

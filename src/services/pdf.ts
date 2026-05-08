@@ -1,10 +1,10 @@
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import autoTable from 'jspdf-autotable';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { OvertimeEntry, UserProfile, AppSettings } from '../types/app';
-import { calculateTotalStats } from '../lib/calculations';
+import { calculateTotalStats, calculateHourlyRate } from '../lib/calculations';
 
 export class PDFService {
   private static async blobToBase64(blob: Blob): Promise<string> {
@@ -19,6 +19,14 @@ export class PDFService {
     });
   }
 
+  private static formatDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
   static async generateReport(
     entries: OvertimeEntry[],
     profile: UserProfile | null,
@@ -27,88 +35,144 @@ export class PDFService {
     STRINGS: any
   ): Promise<{ blob: Blob; filename: string }> {
     const stats = calculateTotalStats(entries, settings);
+    const hourlyRate = calculateHourlyRate(settings);
     const currency = settings.overtime.currency;
     const isRTL = settings.language === 'ar';
+    const isBN = settings.language === 'bn';
 
-    // Create a hidden container for the report
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '800px';
-    container.style.padding = '40px';
-    container.style.backgroundColor = '#ffffff';
-    container.style.color = '#000000';
-    container.style.fontFamily = 'Inter, sans-serif';
-    container.dir = isRTL ? 'rtl' : 'ltr';
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // 1. Professional Header
+    doc.setFillColor(99, 102, 241); // #6366f1
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportTitle, 15, 20);
 
-    container.innerHTML = `
-      <div style="margin-bottom: 30px;">
-        <h1 style="color: #6366f1; font-size: 28px; margin-bottom: 10px;">${reportTitle}</h1>
-        <div style="font-size: 14px; color: #4b5563;">
-          <p><strong>${STRINGS.profile.fullName}:</strong> ${profile?.fullName || STRINGS.dashboard.guest}</p>
-          ${profile?.companyName ? `<p><strong>${STRINGS.profile.companyName}:</strong> ${profile.companyName}</p>` : ''}
-          <p><strong>${STRINGS.addEntry.dateLabel}:</strong> ${new Date().toLocaleDateString()}</p>
-        </div>
-      </div>
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const today = this.formatDate(new Date().toISOString());
+    doc.text(`${STRINGS.addEntry.dateLabel}: ${today}`, 15, 30);
 
-      <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-bottom: 30px;">
-        <h2 style="font-size: 18px; margin-bottom: 15px;">${STRINGS.reports.reportTitle}</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-          <p><strong>${STRINGS.dashboard.totalHours}:</strong> ${stats.totalHours.toFixed(1)}h</p>
-          <p><strong>${STRINGS.reports.otEarnings}:</strong> ${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-          <p><strong>${STRINGS.reports.basicSalary}:</strong> ${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-          <p style="font-size: 16px; font-weight: bold; margin-top: 10px; grid-column: span 2;">
-            ${STRINGS.reports.totalPayout}: ${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-      </div>
-
-      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-        <thead>
-          <tr style="background-color: #6366f1; color: #ffffff;">
-            <th style="padding: 12px; text-align: ${isRTL ? 'right' : 'left'}; border: 1px solid #e5e7eb;">${STRINGS.addEntry.dateLabel}</th>
-            <th style="padding: 12px; text-align: ${isRTL ? 'right' : 'left'}; border: 1px solid #e5e7eb;">${STRINGS.dashboard.totalHours}</th>
-            <th style="padding: 12px; text-align: ${isRTL ? 'right' : 'left'}; border: 1px solid #e5e7eb;">${STRINGS.reports.otEarnings}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${entries.map(entry => `
-            <tr>
-              <td style="padding: 10px; border: 1px solid #e5e7eb;">${new Date(entry.date).toLocaleDateString()}</td>
-              <td style="padding: 10px; border: 1px solid #e5e7eb;">${entry.hours}h</td>
-              <td style="padding: 10px; border: 1px solid #e5e7eb;">${currency} ${(entry.hours * stats.hourlyRate).toFixed(2)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-
-    document.body.appendChild(container);
-
-    try {
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const doc = new jsPDF('p', 'mm', 'a4');
-      const imgProps = doc.getImageProperties(imgData);
-      const pdfWidth = doc.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      
-      const filename = `Overtime_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-      const blob = doc.output('blob');
-
-      return { blob, filename };
-    } finally {
-      document.body.removeChild(container);
+    // 2. Profile Info Section (Top Right of header or just below)
+    doc.setTextColor(255, 255, 255);
+    const profileName = profile?.fullName || STRINGS.dashboard.guest;
+    const company = profile?.companyName || '';
+    doc.text(`${STRINGS.profile.fullName}: ${profileName}`, pageWidth - 15, 20, { align: 'right' });
+    if (company) {
+      doc.text(`${STRINGS.profile.companyName}: ${company}`, pageWidth - 15, 26, { align: 'right' });
     }
+
+    let yPos = 55;
+
+    // 3. Summary Section (Styled as a "Card")
+    doc.setFillColor(243, 244, 246); // bg-gray-100
+    doc.setDrawColor(229, 231, 235); // border-gray-200
+    doc.roundedRect(15, yPos, pageWidth - 30, 35, 3, 3, 'FD');
+
+    doc.setTextColor(55, 65, 81); // gray-700
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(STRINGS.reports.reportTitle, 20, yPos + 10);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(107, 114, 128); // gray-500
+    
+    const summaryItems = [
+      { label: STRINGS.dashboard.totalHours, value: `${stats.totalHours.toFixed(1)}h` },
+      { label: STRINGS.reports.otEarnings, value: `${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+      { label: STRINGS.reports.basicSalary, value: `${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+      { label: STRINGS.reports.totalPayout, value: `${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, highlight: true }
+    ];
+
+    let xOff = 20;
+    summaryItems.forEach((item, index) => {
+      const colWidth = (pageWidth - 40) / 4;
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'normal');
+      doc.text(item.label, xOff, yPos + 20);
+      
+      doc.setTextColor(item.highlight ? 99 : 31, item.highlight ? 102 : 41, item.highlight ? 241 : 55);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(item.value, xOff, yPos + 26);
+      
+      xOff += colWidth;
+    });
+
+    yPos += 50;
+
+    // 4. Entries Table
+    const tableHeaders = [
+      STRINGS.addEntry.dateLabel,
+      STRINGS.dashboard.totalHours,
+      STRINGS.reports.otEarnings,
+      STRINGS.addEntry.noteLabel || "Task Details"
+    ];
+
+    const tableRows = entries.map(entry => {
+      const entryEarnings = entry.hours * (entry.rate || hourlyRate);
+      return [
+        this.formatDate(entry.date),
+        `${entry.hours}h`,
+        `${currency} ${entryEarnings.toFixed(2)}`,
+        entry.note || '-'
+      ];
+    });
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [tableHeaders],
+      body: tableRows,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: [99, 102, 241], 
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 10,
+        halign: 'center'
+      },
+      styles: { 
+        fontSize: 9,
+        cellPadding: 4,
+        overflow: 'linebreak',
+        font: 'helvetica',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { cellWidth: 35, halign: 'center' },
+        1: { cellWidth: 25, halign: 'center' },
+        2: { cellWidth: 40, halign: 'center' },
+        3: { cellWidth: 'auto', halign: 'left' } 
+      },
+      alternateRowStyles: {
+        fillColor: [249, 250, 251]
+      }
+    });
+
+    // 5. Footer
+    const totalPages = (doc.internal as any).getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(156, 163, 175);
+        doc.text(
+            `Page ${i} of ${totalPages} | Generated by Overtime Tracker`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+        );
+    }
+
+    const filename = `Overtime_Tracker_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+    const blob = doc.output('blob');
+
+    return { blob, filename };
   }
 
   static async openPDF(blob: Blob, filename: string) {

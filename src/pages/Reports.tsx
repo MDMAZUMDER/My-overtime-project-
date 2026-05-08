@@ -34,6 +34,14 @@ export default function Reports() {
     };
   }, []);
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const filteredEntries = useMemo(() => {
     const now = new Date();
     const sorted = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -43,9 +51,14 @@ export default function Reports() {
     }
 
     if (activeTab === "weekly") {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(now.getDate() - 7);
-      return sorted.filter(e => new Date(e.date) >= oneWeekAgo);
+      // Req #5: Only show the latest week's data
+      if (sorted.length === 0) return [];
+      
+      const latestEntryDate = new Date(sorted[0].date);
+      const startOfWeek = new Date(latestEntryDate);
+      startOfWeek.setDate(latestEntryDate.getDate() - 7);
+      
+      return sorted.filter(e => new Date(e.date) > startOfWeek);
     }
 
     if (activeTab === "monthly") {
@@ -56,6 +69,8 @@ export default function Reports() {
 
     return sorted;
   }, [entries, activeTab]);
+
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     return calculateTotalStats(filteredEntries, settings);
@@ -164,8 +179,9 @@ export default function Reports() {
           )}
           <Tooltip content={STRINGS.reports.downloadPDF} position="bottom">
             <button
-              onClick={() => handleExport('open')}
-              disabled={isExporting || (activeTab !== 'history' && filteredEntries.length === 0)}
+              id="header-export-btn"
+              onClick={() => handleExport('open', [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), STRINGS.reports.reportTitle)}
+              disabled={isExporting || entries.length === 0}
               className="p-2 bg-surface-variant/50 text-on-surface-variant rounded-full hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
             >
               {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
@@ -174,42 +190,40 @@ export default function Reports() {
         </div>
       </header>
 
-      {/* Summary Card with integrated Close Action */}
-      {activeTab !== 'history' && (
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-secondary/5 border border-outline/10 rounded-[32px] p-6 shadow-sm">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl" />
-          
-          <div className="relative space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-1">{STRINGS.reports.otEarnings}</p>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-sm font-bold text-primary/60">{settings.overtime.currency}</span>
-                  <span className="text-3xl font-black text-on-surface tracking-tight">{overallStats.totalEarnings.toFixed(2)}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-1 opacity-60">{STRINGS.dashboard.totalHours}</p>
-                <p className="text-xl font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}<span className="text-xs ml-0.5 opacity-40">h</span></p>
+      {/* Summary Card with integrated Close Action - Always visible to prevent layout jumps */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-secondary/5 border border-outline/10 rounded-[32px] p-6 shadow-sm">
+        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl" />
+        
+        <div className="relative space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-1">{STRINGS.reports.otEarnings}</p>
+              <div className="flex items-baseline space-x-1">
+                <span className="text-sm font-bold text-primary/60">{settings.overtime.currency}</span>
+                <span className="text-3xl font-black text-on-surface tracking-tight">{overallStats.totalEarnings.toFixed(2)}</span>
               </div>
             </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-1 opacity-60">{STRINGS.dashboard.totalHours}</p>
+              <p className="text-xl font-bold text-on-surface">{overallStats.totalHours.toFixed(1)}<span className="text-xs ml-0.5 opacity-40">h</span></p>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-outline/5">
-              <div>
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider opacity-50 mb-1">{STRINGS.reports.basicSalary}</p>
-                <p className="text-sm font-bold text-on-surface/80">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-wider opacity-50 mb-1">{STRINGS.reports.totalPayout}</p>
-                <p className="text-sm font-bold text-primary">
-                  {settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}
-                </p>
-              </div>
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-outline/5">
+            <div>
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider opacity-50 mb-1">{STRINGS.reports.basicSalary}</p>
+              <p className="text-sm font-bold text-on-surface/80">{settings.overtime.currency} {settings.overtime.basicSalary.toFixed(2)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-primary uppercase tracking-wider opacity-50 mb-1">{STRINGS.reports.totalPayout}</p>
+              <p className="text-sm font-bold text-primary">
+                {settings.overtime.currency} {(settings.overtime.basicSalary + overallStats.totalEarnings).toFixed(2)}
+              </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="flex bg-surface-variant rounded-full p-1 sticky top-0 z-10 shadow-sm overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
@@ -233,7 +247,14 @@ export default function Reports() {
           <div className="space-y-4">
             {history.length > 0 ? (
             history.map((item) => (
-              <div key={item.id} className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3">
+              <div 
+                key={item.id} 
+                className={cn(
+                  "bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3 transition-all cursor-pointer hover:bg-surface-variant/40",
+                  expandedHistoryId === item.id ? "ring-1 ring-primary/20" : ""
+                )}
+                onClick={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
+              >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-secondary/10 rounded-xl">
@@ -241,16 +262,21 @@ export default function Reports() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-on-surface">
-                        {new Date(item.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - {new Date(item.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatDate(item.startDate)} - {formatDate(item.endDate)}
                       </p>
                       <p className="text-[10px] text-on-surface-variant opacity-50 italic">
-                        Closed on {new Date(item.closedAt).toLocaleDateString()}
+                        Closed on {formatDate(item.closedAt)}
                       </p>
                     </div>
                   </div>
                   <button 
-                    onClick={() => handleExport('open', item.entries, `Report ${new Date(item.startDate).toLocaleDateString()} - ${new Date(item.endDate).toLocaleDateString()}`)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleExport('open', item.entries, `Report ${formatDate(item.startDate)} - ${formatDate(item.endDate)}`);
+                    }}
                     className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                    title={STRINGS.reports.downloadPDF}
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -265,6 +291,24 @@ export default function Reports() {
                     <p className="text-sm font-bold text-secondary">{settings.overtime.currency} {item.totalEarnings.toFixed(2)}</p>
                   </div>
                 </div>
+
+                {expandedHistoryId === item.id && (
+                  <div className="pt-3 border-t border-outline/5 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase opacity-40 px-1">{STRINGS.dashboard.recentEntries}</p>
+                    {item.entries.map((subEntry) => (
+                      <div key={subEntry.id} className="flex justify-between items-center bg-surface/30 p-2 rounded-lg text-xs">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-on-surface-variant">{formatDate(subEntry.date)}</span>
+                          <span className="opacity-40">|</span>
+                          <span className="text-primary font-medium">{subEntry.hours}h</span>
+                        </div>
+                        <span className="text-secondary opacity-80">
+                          {settings.overtime.currency} {(subEntry.hours * (subEntry.rate || (item.totalEarnings / item.totalHours))).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           ) : (
@@ -289,12 +333,7 @@ export default function Reports() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-on-surface">
-                      {new Date(entry.date).toLocaleDateString(undefined, { 
-                        weekday: 'short', 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
+                      {formatDate(entry.date)}
                     </p>
                     <div className="flex items-center text-xs text-on-surface-variant opacity-70 mt-0.5">
                       <Clock className="w-3 h-3 mr-1" />

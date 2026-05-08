@@ -31,6 +31,14 @@ export default function Dashboard() {
     return calculateTotalStats(entries, settings);
   }, [entries, settings]);
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const recentEntries = useMemo(() => {
     return [...entries]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -128,7 +136,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-on-surface">
-                      {new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      {formatDate(entry.date)}
                     </p>
                     <p className="text-[10px] text-on-surface-variant opacity-50">{entry.hours} {STRINGS.dashboard.hours}</p>
                   </div>

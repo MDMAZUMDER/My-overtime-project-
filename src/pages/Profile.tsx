@@ -1,5 +1,5 @@
 import { useState, useEffect, ChangeEvent, useRef, ReactNode } from "react";
-import { Camera, Save, User, IdCard, Building2, QrCode, X, CheckCircle2, Image as ImageIcon, AlertCircle, Share2, Download, ArrowLeft, Copy } from "lucide-react";
+import { Camera, Save, User, IdCard, Building2, QrCode, X, CheckCircle2, Image as ImageIcon, AlertCircle, Share2, Download, ArrowLeft, Copy, Calendar } from "lucide-react";
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -918,6 +918,22 @@ export default function Profile() {
                 )
               )}
             />
+
+            {profile.joinDate && (
+              <ProfileField 
+                icon={Calendar} 
+                label={STRINGS.profile.joinDate || "Join Date"} 
+                value={(() => {
+                  const date = new Date(profile.joinDate);
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const year = date.getFullYear();
+                  return `${day}/${month}/${year}`;
+                })()} 
+                colorClass="text-green-500"
+                bgClass="bg-green-50"
+              />
+            )}
 
             {/* Sign Out button removed as requested */}
           </div>

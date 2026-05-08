@@ -17,15 +17,20 @@ export const calculateEntryEarnings = (entry: OvertimeEntry, hourlyRate: number)
 };
 
 export const calculateTotalStats = (entries: OvertimeEntry[], settings: AppSettings) => {
-  const hourlyRate = calculateHourlyRate(settings);
+  const currentHourlyRate = calculateHourlyRate(settings);
   
-  const totalHours = entries.reduce((acc, curr) => acc + curr.hours, 0);
-  const totalEarnings = totalHours * hourlyRate;
+  let totalHours = 0;
+  let totalEarnings = 0;
+  
+  entries.forEach(entry => {
+    totalHours += entry.hours;
+    totalEarnings += entry.hours * (entry.rate || currentHourlyRate);
+  });
   
   return {
     totalHours,
     totalEarnings,
-    hourlyRate
+    hourlyRate: currentHourlyRate
   };
 };
 

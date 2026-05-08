@@ -24,7 +24,7 @@ export default function SecurityLock({ onUnlock }: { onUnlock: () => void }) {
             title: STRINGS.security.lockedTitle,
             subtitle: STRINGS.security.lockedMessageBiometric,
             description: STRINGS.security.authenticateToContinue,
-            useFallback: true, // This allows falling back to device passcode/pattern
+            useFallback: true,
           });
           onUnlock();
         } else {
