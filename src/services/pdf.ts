@@ -51,33 +51,42 @@ export class PDFService {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text(reportTitle, 15, 20);
+    doc.text(reportTitle, pageWidth / 2, 20, { align: 'center' });
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     const today = this.formatDate(new Date().toISOString());
-    doc.text(`${STRINGS.addEntry.dateLabel}: ${today}`, 15, 30);
+    doc.text(`${STRINGS.addEntry.dateLabel}: ${today}`, pageWidth / 2, 30, { align: 'center' });
 
-    // 2. Profile Info Section (Top Right of header or just below)
-    doc.setTextColor(255, 255, 255);
+    // 2. Profile Info Section (Below header bar)
+    doc.setTextColor(55, 65, 81); // gray-700
     const profileName = profile?.fullName || STRINGS.dashboard.guest;
     const company = profile?.companyName || '';
-    doc.text(`${STRINGS.profile.fullName}: ${profileName}`, pageWidth - 15, 20, { align: 'right' });
+    
+    let profileY = 48;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(profileName, 15, profileY);
+    
     if (company) {
-      doc.text(`${STRINGS.profile.companyName}: ${company}`, pageWidth - 15, 26, { align: 'right' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(107, 114, 128);
+      doc.text(company, 15, profileY + 5);
     }
 
-    let yPos = 55;
+    let yPos = 60;
 
     // 3. Summary Section (Styled as a "Card")
     doc.setFillColor(243, 244, 246); // bg-gray-100
-    doc.setDrawColor(229, 231, 235); // border-gray-200
+    doc.setDrawColor(99, 102, 241); // indigo-500 border
+    doc.setLineWidth(0.5);
     doc.roundedRect(15, yPos, pageWidth - 30, 35, 3, 3, 'FD');
 
-    doc.setTextColor(55, 65, 81); // gray-700
-    doc.setFontSize(14);
+    doc.setTextColor(99, 102, 241); 
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(STRINGS.reports.reportTitle, 20, yPos + 10);
+    doc.text(STRINGS.reports.reportTitle, pageWidth / 2, yPos + 10, { align: 'center' });
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -90,17 +99,18 @@ export class PDFService {
       { label: STRINGS.reports.totalPayout, value: `${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, highlight: true }
     ];
 
-    let xOff = 20;
+    let xOff = 15;
+    const colWidth = (pageWidth - 30) / 4;
     summaryItems.forEach((item, index) => {
-      const colWidth = (pageWidth - 40) / 4;
       doc.setTextColor(107, 114, 128);
       doc.setFont('helvetica', 'normal');
-      doc.text(item.label, xOff, yPos + 20);
+      doc.setFontSize(8);
+      doc.text(item.label, xOff + colWidth / 2, yPos + 20, { align: 'center' });
       
       doc.setTextColor(item.highlight ? 99 : 31, item.highlight ? 102 : 41, item.highlight ? 241 : 55);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text(item.value, xOff, yPos + 26);
+      doc.setFontSize(10);
+      doc.text(item.value, xOff + colWidth / 2, yPos + 26, { align: 'center' });
       
       xOff += colWidth;
     });
@@ -148,7 +158,7 @@ export class PDFService {
         0: { cellWidth: 35, halign: 'center' },
         1: { cellWidth: 25, halign: 'center' },
         2: { cellWidth: 40, halign: 'center' },
-        3: { cellWidth: 'auto', halign: 'left' } 
+        3: { cellWidth: 'auto', halign: 'center' } 
       },
       alternateRowStyles: {
         fillColor: [249, 250, 251]
