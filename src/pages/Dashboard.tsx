@@ -2,9 +2,9 @@ import { useStrings } from "../hooks/useStrings";
 import { useEffect, useState, useMemo } from "react";
 import { StorageService } from "../services/storage";
 import { UserProfile, OvertimeEntry } from "../types/app";
-import { User, TrendingUp, Clock, Calendar, CheckCircle2 } from "lucide-react";
+import { User, TrendingUp, Clock, Calendar as CalendarIcon, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { calculateTotalStats, getRecentSummary } from "../lib/calculations";
+import { calculateTotalStats } from "../lib/calculations";
 import Logo from "../components/Logo";
 import { Tooltip } from "../components/ui/Tooltip";
 
@@ -46,7 +46,7 @@ export default function Dashboard() {
   }, [entries]);
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-8 pb-24">
       <header className="flex items-center justify-between">
         <Logo iconSize={16} textSize="text-lg" />
         <Link to="/profile" className="flex items-center space-x-2 bg-surface-variant/50 p-1 pr-3 rounded-full border border-outline/10">
@@ -70,7 +70,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-4">
         <Tooltip content={STRINGS.dashboard.totalHours} position="bottom" className="w-full">
-          <div className="bg-primary-container p-5 rounded-3xl shadow-sm space-y-2 w-full">
+          <div className="bg-primary-container p-5 rounded-3xl shadow-sm space-y-2 w-full text-left">
             <div className="flex items-center justify-between">
               <div className="p-2 bg-primary/10 rounded-xl">
                 <Clock className="w-4 h-4 text-primary" />
@@ -87,11 +87,11 @@ export default function Dashboard() {
             </div>
           </div>
         </Tooltip>
-        <Tooltip content={STRINGS.dashboard.totalEarnings} position="bottom" className="w-full">
+        <Tooltip content={STRINGS.dashboard.totalEarnings} position="bottom" className="w-full text-left">
           <div className="bg-secondary-container p-5 rounded-3xl shadow-sm space-y-2 w-full">
             <div className="flex items-center justify-between">
-              <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary">
-                ﷼
+              <div className="p-2 bg-secondary/10 rounded-xl flex items-center justify-center w-8 h-8 font-bold text-secondary text-sm">
+                {settings.overtime.currency}
               </div>
               <TrendingUp className="w-4 h-4 text-secondary opacity-40" />
             </div>
@@ -100,7 +100,7 @@ export default function Dashboard() {
                 {STRINGS.dashboard.totalEarnings}
               </p>
               <p className="text-on-secondary-container text-2xl font-bold">
-                {settings.overtime.currency} {stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                 {stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function Dashboard() {
             <p className="text-xs font-bold text-amber-500">{STRINGS.dashboard.rateNotSet}</p>
             <p className="text-[10px] text-amber-500/70">{STRINGS.dashboard.rateNotSetDesc}</p>
           </div>
-          <p className="text-[10px] font-bold text-amber-500 uppercase">{STRINGS.dashboard.setNow}</p>
+          <ChevronRight className="w-4 h-4 text-amber-500" />
         </Link>
       )}
 
@@ -132,7 +132,7 @@ export default function Dashboard() {
               <div key={entry.id} className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-surface rounded-xl">
-                    <Calendar className="w-4 h-4 text-on-surface-variant opacity-60" />
+                    <CalendarIcon className="w-4 h-4 text-on-surface-variant opacity-60" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-on-surface">
@@ -143,7 +143,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-primary">
-                    {settings.overtime.currency} {(entry.hours * stats.hourlyRate).toFixed(2)}
+                    {settings.overtime.currency} {(entry.hours * (entry.rate || stats.hourlyRate)).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -170,3 +170,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

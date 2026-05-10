@@ -694,248 +694,217 @@ export default function Profile() {
         <h1 className="text-2xl font-bold text-on-surface">{STRINGS.profile.title}</h1>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative py-8 px-6 text-center">
-        <div className="relative inline-block mb-4">
-          <div className="w-28 h-28 rounded-full bg-white p-1 shadow-md border border-gray-100">
-            <div className="w-full h-full rounded-full overflow-hidden bg-gray-50 relative group">
-              {profile.profilePhoto ? (
-                <img src={profile.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <User className="w-12 h-12 text-gray-300" />
+      {/* Hero Profile Card */}
+      <section className="px-6 mb-8">
+        <div className="bg-surface-variant/30 border border-outline/10 rounded-[40px] p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-secondary/5 rounded-full -ml-12 -mb-12 blur-2xl" />
+          
+          <div className="relative flex flex-col items-center text-center space-y-4">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-[48px] bg-surface p-1.5 shadow-2xl shadow-primary/10 border border-outline/10">
+                <div className="w-full h-full rounded-[40px] overflow-hidden bg-surface-variant/20 relative group">
+                  {profile.profilePhoto ? (
+                    <img src={profile.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-16 h-16 text-on-surface-variant/20" />
+                    </div>
+                  )}
+                  {isEditing && (
+                    <label className="absolute inset-0 bg-primary/40 backdrop-blur-[2px] flex items-center justify-center cursor-pointer transition-all duration-300">
+                      <Camera className="w-8 h-8 text-white" />
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                    </label>
+                  )}
                 </div>
-              )}
-              {isEditing && (
-                <label className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-6 h-6 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                </label>
+              </div>
+              {!isEditing && (
+                <button 
+                  onClick={() => {
+                    setQrTab('my');
+                    setShowQrView(true);
+                  }}
+                  className="absolute -bottom-1 -right-1 p-3 bg-primary text-on-primary rounded-2xl shadow-xl shadow-primary/20 border-2 border-surface active:scale-90 transition-all"
+                >
+                  <QrCode className="w-5 h-5" />
+                </button>
               )}
             </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-center space-x-2">
+                <h1 className="text-2xl font-black text-on-surface tracking-tight">
+                  {profile.fullName || STRINGS.dashboard.guest}
+                </h1>
+                {profile.companyId && (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                )}
+              </div>
+              <p className="text-sm font-bold text-on-surface-variant opacity-60">
+                {profile.designation || "Overtime Master User"}
+              </p>
+            </div>
+
+            {profile.companyName && (
+              <div className="inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
+                <Building2 className="w-3 h-3 mr-2" />
+                {profile.companyName}
+              </div>
+            )}
           </div>
+        </div>
+      </section>
+
+      {/* Details Sections */}
+      <div className="px-6 space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em]">{STRINGS.profile.title} Details</h2>
           {!isEditing && (
-            <button 
-              onClick={() => {
-                setQrTab('my');
-                setShowQrView(true);
-              }}
-              className="absolute bottom-0 right-0 p-2.5 bg-primary text-white rounded-full shadow-lg z-10 border-2 border-white"
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-xs font-black text-primary uppercase tracking-widest hover:underline"
             >
-              <QrCode className="w-4 h-4" />
+              {STRINGS.profile.editProfile}
             </button>
           )}
         </div>
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-center space-x-2">
-            <h1 className="text-xl font-bold text-gray-900">
-              {profile.fullName || STRINGS.dashboard.guest}
-            </h1>
-            {profile.companyId && (
-              <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-500/10" />
-            )}
-          </div>
-          {profile.companyName && (
-            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 mt-1">
-              <Building2 className="w-3 h-3 mr-1" />
-              {profile.companyName}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <div className="px-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Profile Details</h2>
-          {!isEditing && (
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={async () => {
-                  if (navigator.share) {
-                    try {
-                      await navigator.share({
-                        title: profile.fullName,
-                        text: `Check out my profile on Overtime Master. ID: ${profile.employeeId}`,
-                        url: window.location.href
-                      });
-                    } catch (err) {
-                      console.error('Error sharing:', err);
-                    }
-                  }
-                }}
-                className="p-2 text-gray-400 hover:text-primary transition-colors"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-xs font-bold text-primary hover:underline"
-              >
-                Edit
-              </button>
-            </div>
-          )}
-        </div>
-
         {isEditing ? (
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-5 shadow-sm">
+          <div className="bg-surface-variant/20 rounded-[40px] p-6 border border-outline/10 space-y-6">
             <div className="space-y-4">
-              <div className="space-y-1.5 relative">
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-1">Full Name</label>
+              {/* Full Name */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest ml-2">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary opacity-50" />
                   <input
                     type="text"
-                    required
-                    onInvalid={(e) => {
-                      e.preventDefault();
-                      triggerValidation('fullName', STRINGS.common.requiredField);
-                    }}
-                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
                     value={profile.fullName}
                     onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold text-sm text-gray-900 dark:text-white"
-                    placeholder="Enter your name"
+                    className="w-full pl-12 pr-4 py-4 bg-surface rounded-3xl border border-outline/10 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-on-surface"
+                    placeholder="John Doe"
                   />
                 </div>
-                <ValidationTooltip 
-                  isVisible={showValidation.field === 'fullName'} 
-                  message={showValidation.message} 
-                />
               </div>
 
-              <div className="space-y-1.5 relative">
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-1">Employee ID</label>
+              {/* Employee ID */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest ml-2">Employee ID</label>
                 <div className="relative">
-                  <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary opacity-50" />
                   <input
                     type="text"
-                    required
-                    onInvalid={(e) => {
-                      e.preventDefault();
-                      triggerValidation('employeeId', STRINGS.common.requiredField);
-                    }}
-                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
                     value={profile.employeeId}
-                    onChange={(e) => {
-                      const prefix = "SRH - ";
-                      let val = e.target.value;
-                      let digits = "";
-                      
-                      if (val.startsWith(prefix)) {
-                        digits = val.slice(prefix.length).replace(/\D/g, "");
-                      } else {
-                        // Handle cases where user might delete part of prefix
-                        digits = val.replace(/[^\d]/g, "");
-                      }
-                      
-                      const finalVal = prefix + digits.slice(0, 5);
-                      setProfile({ ...profile, employeeId: finalVal });
-                    }}
-                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold text-sm text-gray-900 dark:text-white"
-                    placeholder="SRH - 12345"
+                    onChange={(e) => setProfile({ ...profile, employeeId: e.target.value })}
+                    className="w-full pl-12 pr-4 py-4 bg-surface rounded-3xl border border-outline/10 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-on-surface"
+                    placeholder="SRH-00000"
                   />
                 </div>
-                <ValidationTooltip 
-                  isVisible={showValidation.field === 'employeeId'} 
-                  message={showValidation.message} 
-                />
+              </div>
+
+              {/* Department & Designation */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest ml-2">Department</label>
+                  <input
+                    type="text"
+                    value={profile.department}
+                    onChange={(e) => setProfile({ ...profile, department: e.target.value })}
+                    className="w-full px-5 py-4 bg-surface rounded-3xl border border-outline/10 focus:border-primary outline-none transition-all font-bold text-sm text-on-surface"
+                    placeholder="Operations"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest ml-2">Designation</label>
+                  <input
+                    type="text"
+                    value={profile.designation}
+                    onChange={(e) => setProfile({ ...profile, designation: e.target.value })}
+                    className="w-full px-5 py-4 bg-surface rounded-3xl border border-outline/10 focus:border-primary outline-none transition-all font-bold text-sm text-on-surface"
+                    placeholder="Senior Manager"
+                  />
+                </div>
+              </div>
+
+              {/* Join Date */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest ml-2">Join Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary opacity-50" />
+                  <input
+                    type="date"
+                    value={profile.joinDate}
+                    onChange={(e) => setProfile({ ...profile, joinDate: e.target.value })}
+                    className="w-full pl-12 pr-4 py-4 bg-surface rounded-3xl border border-outline/10 focus:border-primary outline-none transition-all font-bold text-on-surface"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex space-x-3 pt-2">
+            <div className="flex space-x-3 pt-4">
               <button
                 onClick={() => {
-                  if (lastSavedProfile) {
-                    setProfile(JSON.parse(JSON.stringify(lastSavedProfile)));
-                  }
+                  setProfile(lastSavedProfile!);
                   setIsEditing(false);
                 }}
-                className="w-full py-3.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="flex-1 py-4 text-on-surface-variant font-bold text-sm hover:bg-surface-variant/50 rounded-3xl transition-all"
               >
-                Cancel
+                {STRINGS.common.cancel}
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-[2] py-4 bg-primary text-on-primary font-bold text-sm shadow-xl shadow-primary/20 rounded-3xl flex items-center justify-center space-x-2 active:scale-95 transition-all"
+              >
+                <Save className="w-4 h-4" />
+                <span>{STRINGS.common.save}</span>
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <ProfileField 
-              icon={User} 
-              label="Full Name" 
-              value={profile.fullName || "Guest User"} 
-              colorClass="text-blue-500"
-              bgClass="bg-blue-50"
-            />
-            
-            <ProfileField 
-              icon={IdCard} 
-              label="Employee ID" 
-              value={(profile.employeeId && profile.employeeId !== "SRH - ") ? profile.employeeId : (user?.uid || "Not Set")} 
-              colorClass="text-purple-500"
-              bgClass="bg-purple-50"
-              action={
-                <button 
-                  onClick={handleCopyId}
-                  className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors"
-                >
-                  {copied ? (
-                    <div key="check">
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    </div>
-                  ) : (
-                    <div key="copy">
-                      <Copy className="w-4 h-4" />
-                    </div>
-                  )}
-                </button>
-              }
-            />
-
-            <ProfileField 
-              icon={Building2} 
-              label="Company" 
-              value={profile.companyName || (pendingRequest ? pendingRequest.companyName : "Not Connected")} 
-              colorClass="text-indigo-500"
-              bgClass="bg-indigo-50"
-              action={!profile.companyId && (
-                pendingRequest ? (
-                  <div className="flex items-center space-x-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
-                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{STRINGS.profile.pending}</span>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      setQrTab('scan');
-                      setShowQrView(true);
-                    }}
-                    className="px-3 py-1.5 bg-primary text-white rounded-lg text-[10px] font-bold shadow-sm"
-                  >
-                    {STRINGS.profile.connect}
-                  </button>
-                )
-              )}
-            />
-
-            {profile.joinDate && (
-              <ProfileField 
-                icon={Calendar} 
-                label={STRINGS.profile.joinDate || "Join Date"} 
-                value={(() => {
-                  const date = new Date(profile.joinDate);
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const month = String(date.getMonth() + 1).padStart(2, '0');
-                  const year = date.getFullYear();
-                  return `${day}/${month}/${year}`;
-                })()} 
-                colorClass="text-green-500"
-                bgClass="bg-green-50"
-              />
-            )}
-
-            {/* Sign Out button removed as requested */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex items-center space-x-4 p-5 bg-surface-variant/20 rounded-[32px] border border-outline/5 transition-all group">
+              <div className="p-3 bg-surface rounded-2xl shadow-sm border border-outline/10">
+                <IdCard className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Employee ID</p>
+                <p className="text-sm font-black text-on-surface">{profile.employeeId || "Not Set"}</p>
+              </div>
+              <button 
+                onClick={handleCopyId}
+                className="p-2 text-on-surface-variant/30 hover:text-primary transition-colors"
+              >
+                {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              </button>
+            </div>
+            <div className="flex items-center space-x-4 p-5 bg-surface-variant/20 rounded-[32px] border border-outline/5 transition-all group">
+              <div className="p-3 bg-surface rounded-2xl shadow-sm border border-outline/10">
+                <Building2 className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Department</p>
+                <p className="text-sm font-black text-on-surface">{profile.department || "Not Set"}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4 p-5 bg-surface-variant/20 rounded-[32px] border border-outline/5 transition-all group">
+              <div className="p-3 bg-surface rounded-2xl shadow-sm border border-outline/10">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Designation</p>
+                <p className="text-sm font-black text-on-surface">{profile.designation || "Not Set"}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4 p-5 bg-surface-variant/20 rounded-[32px] border border-outline/5 transition-all group">
+              <div className="p-3 bg-surface rounded-2xl shadow-sm border border-outline/10">
+                <Calendar className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Join Date</p>
+                <p className="text-sm font-black text-on-surface">{profile.joinDate ? new Date(profile.joinDate).toLocaleDateString() : "Not Set"}</p>
+              </div>
+            </div>
           </div>
         )}
       </div>

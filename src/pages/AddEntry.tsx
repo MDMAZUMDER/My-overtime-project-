@@ -2,12 +2,15 @@ import { useState, useEffect, FormEvent, useMemo, useRef } from "react";
 import { useStrings } from "../hooks/useStrings";
 import { StorageService } from "../services/storage";
 import { OvertimeEntry } from "../types/app";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, TrendingUp, BarChart3 } from "lucide-react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { ArrowLeft, Save, TrendingUp, BarChart3, Calendar as CalendarIcon, ChevronRight } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { calculateHourlyRate, getBarChartData } from "../lib/calculations";
 import { useFirebase } from "../components/FirebaseProvider";
 import { db, doc, setDoc, serverTimestamp, handleFirestoreError, OperationType } from "../firebase";
 import { ValidationTooltip } from "../components/ui/ValidationTooltip";
+import Calendar from "../components/Calendar";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   BarChart, 
   Bar, 
@@ -22,6 +25,7 @@ import {
 export default function AddEntry() {
   const STRINGS = useStrings();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const { user, profile } = useFirebase();
   const settings = StorageService.getSettings();
@@ -33,10 +37,11 @@ export default function AddEntry() {
   }, [entries]);
 
   const [entry, setEntry] = useState<Partial<OvertimeEntry>>({
-    date: new Date().toISOString().split('T')[0],
+    date: location.state?.date || new Date().toISOString().split('T')[0],
     hours: 0,
     note: "",
   });
+  const [showCalendar, setShowCalendar] = useState(false);
   const [showValidation, setShowValidation] = useState<{ field: string | null, message: string | null }>({ field: null, message: null });
   const validationTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -63,12 +68,6 @@ export default function AddEntry() {
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    if (entry.date > today) {
-      alert(STRINGS.addEntry?.futureDateError || "Future dates are not allowed for overtime.");
-      return;
-    }
-
     const entryId = id || crypto.randomUUID();
     const newEntry: OvertimeEntry = {
       id: entryId,
@@ -86,6 +85,29 @@ export default function AddEntry() {
 
   return (
     <div className="space-y-6">
+      <AnimatePresence>
+        {showCalendar && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm"
+          >
+            <Calendar 
+              selectedDate={entry.date || ""} 
+              onDateSelect={(date) => {
+                setEntry({ ...entry, date });
+              }}
+              onCancel={() => setShowCalendar(false)}
+              onClear={() => setEntry({ ...entry, date: "" })}
+              onSet={() => setShowCalendar(false)}
+              highlightedDates={entries.map(e => e.date)}
+              STRINGS={STRINGS}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="flex items-center space-x-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-on-surface-variant hover:text-primary transition-colors">
           <ArrowLeft className="w-6 h-6" />
@@ -96,27 +118,21 @@ export default function AddEntry() {
       </header>
 
       <form onSubmit={handleSave} className="space-y-4 bg-surface-variant/30 p-6 rounded-3xl border border-outline/10">
-        <div className="space-y-2 relative">
+        <div className="space-y-3 relative">
           <label className="text-sm font-medium text-on-surface-variant ml-1">
             {STRINGS.addEntry.dateLabel}
           </label>
-          <input
-            type="date"
-            required
-            max={new Date().toISOString().split('T')[0]}
-            onInvalid={(e) => {
-              e.preventDefault();
-              triggerValidation('date', STRINGS.common.requiredField);
-            }}
-            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity("")}
-            value={entry.date}
-            onChange={(e) => setEntry({ ...entry, date: e.target.value })}
-            className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-          />
-          <ValidationTooltip 
-            isVisible={showValidation.field === 'date'} 
-            message={showValidation.message} 
-          />
+          <button
+            type="button"
+            onClick={() => setShowCalendar(true)}
+            className="w-full bg-surface border border-outline rounded-xl px-4 py-3 flex items-center justify-between text-on-surface hover:bg-surface-variant/10 transition-all font-bold"
+          >
+            <div className="flex items-center space-x-3">
+              <CalendarIcon className="w-5 h-5 text-primary" />
+              <span>{entry.date ? format(parseISO(entry.date), 'dd/MM/yyyy') : STRINGS.common?.selectDate || "Select Date"}</span>
+            </div>
+            <ChevronRight className="w-4 h-4 opacity-40" />
+          </button>
         </div>
 
         <div className="space-y-2 relative">

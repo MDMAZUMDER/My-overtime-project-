@@ -37,12 +37,84 @@ export class PDFService {
     const stats = calculateTotalStats(entries, settings);
     const hourlyRate = calculateHourlyRate(settings);
     const currency = settings.overtime.currency;
-    const isRTL = settings.language === 'ar';
-    const isBN = settings.language === 'bn';
+    const lang = settings.language;
+    const isCustomFont = ['bn', 'ar', 'ur'].includes(lang);
+
+    // Force English labels for the PDF as requested
+    const PDF_STRINGS = {
+      date: 'Date',
+      note: 'Note',
+      guest: 'Guest',
+      reportTitle: 'Overtime Report',
+      totalHours: 'Total Hours',
+      otEarnings: 'OT Earnings',
+      basicSalary: 'Basic Salary',
+      totalPayout: 'Total Payout',
+      hours: 'Hours'
+    };
 
     const doc = new jsPDF('p', 'mm', 'a4');
+    
+    // Load custom font if needed (Bengali, Arabic, Urdu)
+    // We keep this to support user data (notes, names) in their native script
+    if (isCustomFont) {
+      try {
+        const fontUrls: Record<string, string[]> = {
+          bn: [
+            'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansbengali/NotoSansBengali-Regular.ttf',
+            'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@master/hinted/ttf/NotoSansBengali/NotoSansBengali-Regular.ttf',
+            'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@master/unhinted/ttf/NotoSansBengali/NotoSansBengali-Regular.ttf',
+            'https://fonts.gstatic.com/s/notosansbengali/v15/0nEq59S_769m0_N1_9X9-3oH7yW3.ttf'
+          ],
+          ar: [
+            'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic-Regular.ttf',
+            'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@master/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf',
+            'https://fonts.gstatic.com/s/notosansarabic/v18/n8AUmZve1QYdyf_7TDErB6sqY_Y.ttf'
+          ],
+          ur: [
+            'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic-Regular.ttf'
+          ]
+        };
+        
+        let response: Response | null = null;
+        const urls = fontUrls[lang] || [];
+        
+        for (const url of urls) {
+          try {
+            console.log(`Searching for font at ${url}...`);
+            const res = await fetch(url);
+            if (res.ok) {
+              response = res;
+              console.log(`Font found at ${url}`);
+              break;
+            }
+          } catch (e) {
+            console.warn(`Font fetch error for ${url}:`, e);
+          }
+        }
+
+        if (response && response.ok) {
+          const blob = await response.blob();
+          const base64 = await PDFService.blobToBase64(blob);
+          
+          doc.addFileToVFS('CustomFont.ttf', base64);
+          doc.addFont('CustomFont.ttf', 'CustomFont', 'normal');
+          doc.setFont('CustomFont');
+        } else {
+          console.error('No font sources worked');
+        }
+      } catch (e) {
+        console.error('Font loading error:', e);
+      }
+    }
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    const fontFamily = isCustomFont ? 'CustomFont' : 'helvetica';
+    const fontStyle = isCustomFont ? 'normal' : 'bold';
+    const isRTL = ['ar', 'ur'].includes(lang);
     
     // 1. Professional Header
     doc.setFillColor(99, 102, 241); // #6366f1
@@ -50,29 +122,33 @@ export class PDFService {
     
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text(reportTitle, pageWidth / 2, 20, { align: 'center' });
+    doc.setFont(fontFamily, fontStyle);
+    // Force English report title if it matches current Bengali/Arabic labels
+    const displayTitle = reportTitle.includes('Report') || reportTitle.includes('রিপোর্ট') || reportTitle.includes('تقرير') 
+      ? PDF_STRINGS.reportTitle 
+      : reportTitle;
+    doc.text(displayTitle, pageWidth / 2, 20, { align: 'center' });
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     const today = this.formatDate(new Date().toISOString());
-    doc.text(`${STRINGS.addEntry.dateLabel}: ${today}`, pageWidth / 2, 30, { align: 'center' });
+    doc.text(`${PDF_STRINGS.date}: ${today}`, pageWidth / 2, 30, { align: 'center' });
 
     // 2. Profile Info Section (Below header bar)
     doc.setTextColor(55, 65, 81); // gray-700
-    const profileName = profile?.fullName || STRINGS.dashboard.guest;
+    const profileName = profile?.fullName || PDF_STRINGS.guest;
     const company = profile?.companyName || '';
     
     let profileY = 48;
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(profileName, 15, profileY);
+    doc.setFont(fontFamily, fontStyle);
+    doc.text(profileName, margin, profileY);
     
     if (company) {
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont(fontFamily, 'normal');
       doc.setTextColor(107, 114, 128);
-      doc.text(company, 15, profileY + 5);
+      doc.text(company, margin, profileY + 5);
     }
 
     let yPos = 60;
@@ -81,34 +157,34 @@ export class PDFService {
     doc.setFillColor(243, 244, 246); // bg-gray-100
     doc.setDrawColor(99, 102, 241); // indigo-500 border
     doc.setLineWidth(0.5);
-    doc.roundedRect(15, yPos, pageWidth - 30, 35, 3, 3, 'FD');
+    doc.roundedRect(margin, yPos, contentWidth, 35, 3, 3, 'FD');
 
     doc.setTextColor(99, 102, 241); 
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(STRINGS.reports.reportTitle, pageWidth / 2, yPos + 10, { align: 'center' });
+    doc.setFont(fontFamily, fontStyle);
+    doc.text(PDF_STRINGS.reportTitle, pageWidth / 2, yPos + 10, { align: 'center' });
 
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(fontFamily, 'normal');
     doc.setTextColor(107, 114, 128); // gray-500
     
     const summaryItems = [
-      { label: STRINGS.dashboard.totalHours, value: `${stats.totalHours.toFixed(1)}h` },
-      { label: STRINGS.reports.otEarnings, value: `${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
-      { label: STRINGS.reports.basicSalary, value: `${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
-      { label: STRINGS.reports.totalPayout, value: `${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, highlight: true }
+      { label: PDF_STRINGS.totalHours, value: `${stats.totalHours.toFixed(1)}h` },
+      { label: PDF_STRINGS.otEarnings, value: `${currency} ${stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+      { label: PDF_STRINGS.basicSalary, value: `${currency} ${settings.overtime.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+      { label: PDF_STRINGS.totalPayout, value: `${currency} ${(settings.overtime.basicSalary + stats.totalEarnings).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, highlight: true }
     ];
 
-    let xOff = 15;
-    const colWidth = (pageWidth - 30) / 4;
+    let xOff = margin;
+    const colWidth = contentWidth / 4;
     summaryItems.forEach((item, index) => {
       doc.setTextColor(107, 114, 128);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont(fontFamily, 'normal');
       doc.setFontSize(8);
       doc.text(item.label, xOff + colWidth / 2, yPos + 20, { align: 'center' });
       
       doc.setTextColor(item.highlight ? 99 : 31, item.highlight ? 102 : 41, item.highlight ? 241 : 55);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont(fontFamily, fontStyle);
       doc.setFontSize(10);
       doc.text(item.value, xOff + colWidth / 2, yPos + 26, { align: 'center' });
       
@@ -117,55 +193,77 @@ export class PDFService {
 
     yPos += 50;
 
-    // 4. Entries Table
-    const tableHeaders = [
-      STRINGS.addEntry.dateLabel,
-      STRINGS.dashboard.totalHours,
-      STRINGS.reports.otEarnings,
-      STRINGS.addEntry.noteLabel || "Task Details"
-    ];
+    // 4. Entries Table (Grouped by Month)
+    const groupedEntries: { [key: string]: OvertimeEntry[] } = {};
+    entries.forEach(e => {
+        const date = new Date(e.date);
+        // Force English month names
+        const monthYear = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        if (!groupedEntries[monthYear]) groupedEntries[monthYear] = [];
+        groupedEntries[monthYear].push(e);
+    });
 
-    const tableRows = entries.map(entry => {
-      const entryEarnings = entry.hours * (entry.rate || hourlyRate);
-      return [
-        this.formatDate(entry.date),
-        `${entry.hours}h`,
-        `${currency} ${entryEarnings.toFixed(2)}`,
-        entry.note || '-'
+    const months = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    months.forEach((month, index) => {
+      if (index > 0) yPos = (doc as any).lastAutoTable.finalY + 15;
+      
+      doc.setTextColor(55, 65, 81);
+      doc.setFontSize(12);
+      doc.setFont(fontFamily, fontStyle);
+      doc.text(month, margin, yPos - 5);
+
+      const tableHeaders = [
+        PDF_STRINGS.date,
+        PDF_STRINGS.totalHours,
+        PDF_STRINGS.otEarnings,
+        PDF_STRINGS.note
       ];
-    });
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [tableHeaders],
-      body: tableRows,
-      theme: 'striped',
-      headStyles: { 
-        fillColor: [99, 102, 241], 
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 10,
-        halign: 'center'
-      },
-      styles: { 
-        fontSize: 9,
-        cellPadding: 4,
-        overflow: 'linebreak',
-        font: 'helvetica',
-        halign: 'center'
-      },
-      columnStyles: {
-        0: { cellWidth: 35, halign: 'center' },
-        1: { cellWidth: 25, halign: 'center' },
-        2: { cellWidth: 40, halign: 'center' },
-        3: { cellWidth: 'auto', halign: 'center' } 
-      },
-      alternateRowStyles: {
-        fillColor: [249, 250, 251]
-      }
-    });
+      const tableRows = groupedEntries[month].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(entry => {
+        const entryEarnings = entry.hours * (entry.rate || hourlyRate);
+        return [
+          this.formatDate(entry.date),
+          `${entry.hours}h`,
+          `${currency} ${entryEarnings.toFixed(2)}`,
+          entry.note || '-'
+        ];
+      });
 
-    // 5. Footer
+      autoTable(doc, {
+        startY: yPos,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'striped',
+        margin: { left: margin, right: margin },
+        headStyles: { 
+          fillColor: [99, 102, 241], 
+          textColor: [255, 255, 255],
+          fontStyle: fontStyle as any,
+          fontSize: 10,
+          halign: isRTL ? 'right' : 'center',
+          font: fontFamily
+        },
+        styles: { 
+          fontSize: 9,
+          cellPadding: 4,
+          overflow: 'linebreak',
+          font: fontFamily,
+          halign: isRTL ? 'right' : 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 35, halign: isRTL ? 'right' : 'center' },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 40, halign: 'center' },
+          3: { cellWidth: 'auto', halign: isRTL ? 'right' : 'center' } 
+        },
+        alternateRowStyles: {
+          fillColor: [249, 250, 251]
+        }
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    });
     const totalPages = (doc.internal as any).getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);

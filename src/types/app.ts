@@ -61,6 +61,7 @@ export interface AppSettings {
   appearance: {
     theme: Theme;
   };
+  hasSetLanguage: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -89,4 +90,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   appearance: {
     theme: 'system',
   },
+  hasSetLanguage: false,
 };

@@ -1,5 +1,5 @@
 {
-  "name": "overtime",
-  "description": "A modern mobile-first application to track overtime hours and earnings with an offline-first architecture.",
+  "name": "Overtime Master",
+  "description": "Professional overtime tracking app with PDF reports, multi-language support, and high-impact analytics for modern employees.",
   "requestFramePermissions": ["notifications", "camera"]
 }

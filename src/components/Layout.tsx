@@ -5,16 +5,19 @@ import { StorageService } from "../services/storage";
 import SplashScreen from "./SplashScreen";
 import SecurityLock from "./SecurityLock";
 import NotificationManager from "./NotificationManager";
+import LanguageSelector from "./LanguageSelector";
+import { AnimatePresence } from "motion/react";
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const settings = StorageService.getSettings();
+  const [settings, setSettings] = useState(StorageService.getSettings());
   const [theme, setTheme] = useState(settings.appearance.theme);
   const [hasUnlocked, setHasUnlocked] = useState(false);
   const [isLocked, setIsLocked] = useState(settings.security.enabled);
   const [showSplash, setShowSplash] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showLanguageSelector, setShowLanguageSelector] = useState(!settings.hasSetLanguage);
 
   // Handle security lock when returning from background
   useEffect(() => {
@@ -111,12 +114,25 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col max-w-lg mx-auto shadow-xl relative overflow-hidden transition-colors duration-300">
-      {showSplash && <SplashScreen />}
-      {isLocked && !showSplash && (
+      <AnimatePresence>
+        {showSplash && <SplashScreen key="splash" />}
+        
+        {showLanguageSelector && !showSplash && (
+          <LanguageSelector 
+            key="lang-selector" 
+            onSelect={() => {
+              setShowLanguageSelector(false);
+              setSettings(StorageService.getSettings());
+            }} 
+          />
+        )}
+      </AnimatePresence>
+
+      {isLocked && !showSplash && !showLanguageSelector && (
         <SecurityLock onUnlock={handleUnlock} />
       )}
 
-      {!showSplash && !isLocked && (
+      {!showSplash && !isLocked && !showLanguageSelector && (
         <>
           <NotificationManager />
           <main className="flex-1 overflow-y-auto pb-20 px-4 pt-6">

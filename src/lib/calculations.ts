@@ -34,6 +34,72 @@ export const calculateTotalStats = (entries: OvertimeEntry[], settings: AppSetti
   };
 };
 
+export const calculateMonthlyStats = (entries: OvertimeEntry[], settings: AppSettings) => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  const thisMonthEntries = entries.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const lastMonthEntries = entries.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+  });
+
+  // Group by month-year string for all entries
+  const grouped: Record<string, { entries: OvertimeEntry[], stats: any }> = {};
+  entries.forEach(e => {
+    const d = new Date(e.date);
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    if (!grouped[key]) {
+      grouped[key] = { entries: [], stats: null };
+    }
+    grouped[key].entries.push(e);
+  });
+
+  Object.keys(grouped).forEach(key => {
+    grouped[key].stats = calculateTotalStats(grouped[key].entries, settings);
+  });
+
+  // Find busiest month
+  let busiestKey = "";
+  let maxHours = 0;
+  Object.keys(grouped).forEach(key => {
+    if (grouped[key].stats.totalHours > maxHours) {
+      maxHours = grouped[key].stats.totalHours;
+      busiestKey = key;
+    }
+  });
+
+  let busiestMonth = null;
+  if (busiestKey) {
+    const [year, month] = busiestKey.split("-").map(Number);
+    const date = new Date(year, month - 1, 1);
+    const locale = settings.language === 'bn' ? 'bn-BD' : settings.language === 'ar' ? 'ar-SA' : 'en-US';
+    busiestMonth = {
+      name: date.toLocaleString(locale, { month: 'long' }),
+      year,
+      stats: grouped[busiestKey].stats,
+      count: grouped[busiestKey].entries.length
+    };
+  }
+
+  return {
+    thisMonth: calculateTotalStats(thisMonthEntries, settings),
+    lastMonth: calculateTotalStats(lastMonthEntries, settings),
+    thisMonthEntriesCount: thisMonthEntries.length,
+    lastMonthEntriesCount: lastMonthEntries.length,
+    busiestMonth,
+    grouped
+  };
+};
+
 export const getRecentSummary = (entries: OvertimeEntry[], days: number = 7) => {
   const now = new Date();
   const cutoff = new Date();

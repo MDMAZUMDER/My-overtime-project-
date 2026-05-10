@@ -5,7 +5,7 @@ import { StorageService } from "../services/storage";
 import { OvertimeEntry, HistoryEntry } from "../types/app";
 import { Calendar, Clock, FileText, Trash2, Edit2, AlertCircle, TrendingUp, Download, Share2, Loader2, ArrowLeft, History, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { calculateTotalStats } from "../lib/calculations";
+import { calculateTotalStats, calculateHourlyRate } from "../lib/calculations";
 import { PDFService } from "../services/pdf";
 import { Tooltip } from "../components/ui/Tooltip";
 import { useFirebase } from "../components/FirebaseProvider";
@@ -79,6 +79,31 @@ export default function Reports() {
   const overallStats = useMemo(() => {
     return calculateTotalStats(entries, settings);
   }, [entries, settings]);
+
+  const groupedByMonth = useMemo(() => {
+    const groups: { [key: string]: OvertimeEntry[] } = {};
+    
+    entries.forEach(entry => {
+      const date = new Date(entry.date);
+      const monthYear = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+      if (!groups[monthYear]) groups[monthYear] = [];
+      groups[monthYear].push(entry);
+    });
+
+    // Sort months by date descending
+    return Object.keys(groups)
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+      .map(month => ({
+        month,
+        entries: groups[month].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }));
+  }, [entries]);
+
+  // Find month with highest amount of data (most entries)
+  const busiestMonthData = useMemo(() => {
+    if (groupedByMonth.length === 0) return null;
+    return [...groupedByMonth].sort((a, b) => b.entries.length - a.entries.length)[0];
+  }, [groupedByMonth]);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -190,7 +215,6 @@ export default function Reports() {
         </div>
       </header>
 
-      {/* Summary Card with integrated Close Action - Always visible to prevent layout jumps */}
       <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-secondary/5 border border-outline/10 rounded-[32px] p-6 shadow-sm">
         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-secondary/5 rounded-full blur-2xl" />
@@ -242,7 +266,7 @@ export default function Reports() {
         ))}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-8">
         {activeTab === 'history' ? (
           <div className="space-y-4">
             {history.length > 0 ? (
@@ -265,7 +289,7 @@ export default function Reports() {
                         {formatDate(item.startDate)} - {formatDate(item.endDate)}
                       </p>
                       <p className="text-[10px] text-on-surface-variant opacity-50 italic">
-                        Closed on {formatDate(item.closedAt)}
+                        {STRINGS.reports.history} • {formatDate(item.closedAt)}
                       </p>
                     </div>
                   </div>
@@ -273,7 +297,7 @@ export default function Reports() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleExport('open', item.entries, `Report ${formatDate(item.startDate)} - ${formatDate(item.endDate)}`);
+                      handleExport('open', item.entries, `${STRINGS.reports.reportTitle} ${formatDate(item.startDate)} - ${formatDate(item.endDate)}`);
                     }}
                     className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
                     title={STRINGS.reports.downloadPDF}
@@ -320,69 +344,50 @@ export default function Reports() {
             </div>
             )}
           </div>
-        ) : filteredEntries.length > 0 ? (
-          filteredEntries.map((entry) => (
-            <div
-              key={entry.id}
-              className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3 relative group"
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-primary/10 rounded-xl">
-                    <Calendar className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-on-surface">
-                      {formatDate(entry.date)}
-                    </p>
-                    <div className="flex items-center text-xs text-on-surface-variant opacity-70 mt-0.5">
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span>{entry.hours} {STRINGS.dashboard.hours}</span>
-                      <span className="mx-2 opacity-30">|</span>
-                      <TrendingUp className="w-3 h-3 mr-1 text-primary" />
-                      <span className="text-primary font-medium">{settings.overtime.currency} {(entry.hours * stats.hourlyRate).toFixed(2)}</span>
-                      {entry.status && (
-                        <>
-                          <span className="mx-2 opacity-30">|</span>
-                          <span className={cn(
-                            "font-bold",
-                            entry.status === 'approved' ? "text-green-500" :
-                            entry.status === 'rejected' ? "text-red-500" :
-                            "text-yellow-500"
-                          )}>
-                            {entry.status === 'approved' ? 'অনুমোদিত' : entry.status === 'rejected' ? 'প্রত্যাখ্যাত' : 'অপেক্ষমান'}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+        ) : activeTab === "monthly" ? (
+          <div className="space-y-8">
+            {groupedByMonth.map((group) => (
+              <div key={group.month} className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-sm font-black text-on-surface-variant uppercase tracking-widest">{group.month}</h3>
+                  {busiestMonthData?.month === group.month && (
+                    <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
+                      {STRINGS.reports.recent || "Busiest"}
+                    </span>
+                  )}
                 </div>
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => navigate(`/edit/${entry.id}`)}
-                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setDeleteId(entry.id)}
-                    className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="space-y-3">
+                  {group.entries.map((entry) => (
+                    <EntryCard 
+                      key={entry.id} 
+                      entry={entry} 
+                      STRINGS={STRINGS} 
+                      settings={settings} 
+                      onEdit={() => navigate(`/edit/${entry.id}`)}
+                      onDelete={() => setDeleteId(entry.id)}
+                      formatDate={formatDate}
+                      hourlyRate={calculateHourlyRate(settings)}
+                    />
+                  ))}
                 </div>
               </div>
-
-              {entry.note && (
-                <div className="flex items-start space-x-2 bg-surface/50 p-3 rounded-xl border border-outline/5">
-                  <FileText className="w-3.5 h-3.5 text-on-surface-variant opacity-50 mt-0.5" />
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
-                    {entry.note}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))
+            ))}
+          </div>
+        ) : filteredEntries.length > 0 ? (
+          <div className="space-y-3">
+            {filteredEntries.map((entry) => (
+              <EntryCard 
+                key={entry.id} 
+                entry={entry} 
+                STRINGS={STRINGS} 
+                settings={settings} 
+                onEdit={() => navigate(`/edit/${entry.id}`)}
+                onDelete={() => setDeleteId(entry.id)}
+                formatDate={formatDate}
+                hourlyRate={calculateHourlyRate(settings)}
+              />
+            ))}
+          </div>
         ) : (
           <div className="bg-surface-variant/20 border border-dashed border-outline/30 rounded-[32px] p-12 flex flex-col items-center justify-center text-on-surface-variant/40 space-y-4 text-center">
             <div className="w-16 h-16 bg-surface-variant/50 rounded-full flex items-center justify-center">
@@ -467,6 +472,89 @@ export default function Reports() {
               >
                 {STRINGS.settings.closeCalculation}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EntryCard({ entry, STRINGS, settings, onEdit, onDelete, formatDate, hourlyRate }: any) {
+  return (
+    <div
+      key={entry.id}
+      className="bg-surface-variant/30 border border-outline/10 p-4 rounded-2xl space-y-3 relative group"
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-primary/10 rounded-xl">
+            <Calendar className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-on-surface">
+              {formatDate(entry.date)}
+            </p>
+            <div className="flex items-center text-xs text-on-surface-variant opacity-70 mt-0.5">
+              <Clock className="w-3 h-3 mr-1" />
+              <span>{entry.hours} {STRINGS.dashboard.hours}</span>
+              <span className="mx-2 opacity-30">|</span>
+              <TrendingUp className="w-3 h-3 mr-1 text-primary" />
+              <span className="text-primary font-medium">{settings.overtime.currency} {(entry.hours * hourlyRate).toFixed(2)}</span>
+              {entry.status && (
+                <>
+                  <span className="mx-2 opacity-30">|</span>
+                  <span className={cn(
+                    "font-bold",
+                    entry.status === 'approved' ? "text-green-500" :
+                    entry.status === 'rejected' ? "text-red-500" :
+                    "text-yellow-500"
+                  )}>
+                    {entry.status === 'approved' ? (STRINGS.profile.approved || 'Approved') : 
+                     entry.status === 'rejected' ? (STRINGS.profile.rejected || 'Rejected') : 
+                     (STRINGS.profile.pending || 'Pending')}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex space-x-1">
+          <button 
+            onClick={onEdit}
+            className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={onDelete}
+            className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {entry.note && (
+        <div className="mt-4 relative group/note">
+          <div className="absolute -top-1 left-6 w-2 h-2 bg-on-surface/[0.04] border-l border-t border-on-surface/[0.08] rotate-45 z-0" />
+          <div className="relative z-10 flex items-start space-x-3 bg-on-surface/[0.04] p-4 rounded-2xl border border-on-surface/[0.08] backdrop-blur-md transition-all hover:bg-on-surface/[0.06] shadow-sm overflow-hidden">
+            <div className="absolute top-0 right-0 p-1 opacity-5 group-hover/note:opacity-10 transition-opacity">
+               <FileText className="w-12 h-12 -mr-4 -mt-4 rotate-12" />
+            </div>
+            <div className="mt-0.5 p-2 bg-primary/15 rounded-xl shrink-0 shadow-inner">
+              <FileText className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="space-y-1.5 relative z-10">
+              <div className="flex items-center space-x-2">
+                <p className="text-[10px] font-black text-primary/70 uppercase tracking-[0.15em] leading-none">
+                  {STRINGS.addEntry?.noteLabel || "Journal Entry"}
+                </p>
+                <div className="h-[1px] w-8 bg-primary/20" />
+              </div>
+              <p className="text-xs text-on-surface leading-relaxed font-medium italic">
+                {entry.note}
+              </p>
             </div>
           </div>
         </div>
