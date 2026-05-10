@@ -91,19 +91,25 @@ export default function AddEntry() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm"
+            onClick={() => setShowCalendar(false)}
+            className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm"
           >
-            <Calendar 
-              selectedDate={entry.date || ""} 
-              onDateSelect={(date) => {
-                setEntry({ ...entry, date });
-              }}
-              onCancel={() => setShowCalendar(false)}
-              onClear={() => setEntry({ ...entry, date: "" })}
-              onSet={() => setShowCalendar(false)}
-              highlightedDates={entries.map(e => e.date)}
-              STRINGS={STRINGS}
-            />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[300px] -mt-10"
+            >
+              <Calendar 
+                selectedDate={entry.date || ""} 
+                onDateSelect={(date) => {
+                  setEntry({ ...entry, date });
+                }}
+                onCancel={() => setShowCalendar(false)}
+                onClear={() => setEntry({ ...entry, date: "" })}
+                onSet={() => setShowCalendar(false)}
+                highlightedDates={entries.map(e => e.date)}
+                STRINGS={STRINGS}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -44,47 +44,58 @@ export default function Calendar({
   const selectedDateObj = selectedDate ? parseISO(selectedDate) : null;
 
   return (
-    <div className="bg-[#241d1a] rounded-[28px] overflow-hidden w-full max-w-[320px] shadow-2xl flex flex-col">
+    <div className="bg-[#1a1614] rounded-[28px] overflow-hidden w-full max-w-[300px] shadow-2xl flex flex-col h-auto border border-white/5">
       {/* Header with Selected Date Representation */}
-      <div className="bg-[#3e3835] p-4">
-        <h2 className="text-xl font-bold text-white">
-          {selectedDateObj ? format(selectedDateObj, "EEE, MMM d, yyyy") : format(today, "EEE, MMM d, yyyy")}
+      <div className="bg-primary/10 p-4 border-b border-white/5">
+        <p className="text-primary/60 text-[9px] font-bold uppercase tracking-[0.2em] mb-1">
+          {STRINGS.common?.selectDate || "Select Date"}
+        </p>
+        <h2 className="text-xl font-black text-white tracking-tight">
+          {selectedDateObj ? format(selectedDateObj, "EEE, MMM d") : format(today, "EEE, MMM d")}
         </h2>
       </div>
 
-      <div className="p-4 flex-1">
+      <div className="p-3">
         {/* Month Selector */}
-        <div className="flex items-center justify-between mb-6 px-2">
-          <button 
-            type="button"
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="font-bold text-white text-sm">
-            {format(currentMonth, "MMMM yyyy")}
-          </span>
-          <button 
-            type="button"
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between mb-4 px-2">
+          <div className="flex flex-col">
+            <h3 className="text-xs font-bold text-white/90 capitalize leading-none">
+              {format(currentMonth, "MMMM")}
+            </h3>
+            <p className="text-[9px] font-medium text-white/40 mt-1">
+              {format(currentMonth, "yyyy")}
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-0.5">
+            <button 
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-white/60"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button 
+              type="button"
+              onClick={handleNextMonth}
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-white/60"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Days Header */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 mb-2">
           {weekDayLabels.map((day, i) => (
-            <div key={i} className="text-center text-[10px] font-bold text-white/40 h-8 flex items-center justify-center">
+            <div key={i} className="text-center text-[9px] font-black text-white/20 uppercase tracking-widest">
               {day}
             </div>
           ))}
         </div>
 
-        {/* Days Grid */}
-        <div className="grid grid-cols-7 gap-1">
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-y-0.5">
           {days.map((day, i) => {
             const dateStr = format(day, "yyyy-MM-dd");
             const isSelected = selectedDate === dateStr;
@@ -92,6 +103,7 @@ export default function Calendar({
             const isPastMonth = isBefore(startOfMonth(day), startOfMonth(today));
             const isFuture = isAfter(startOfDay(day), today);
             const isDisabled = isFuture || isPastMonth;
+            const hasEntry = highlightedDates.includes(dateStr);
 
             return (
               <button
@@ -100,12 +112,16 @@ export default function Calendar({
                 disabled={isDisabled}
                 onClick={() => onDateSelect(dateStr)}
                 className={cn(
-                  "relative h-10 w-10 flex items-center justify-center rounded-full text-xs transition-all mx-auto",
-                  (!isCurrentMonth || isDisabled) ? "text-white/30 pointer-events-none" : "text-white hover:bg-white/10",
-                  isSelected && "bg-[#2196f3] text-white hover:bg-[#2196f3] shadow-md",
+                  "relative h-9 w-9 flex items-center justify-center rounded-xl text-[11px] transition-all mx-auto font-bold",
+                  (!isCurrentMonth || isDisabled) ? "text-white/10 pointer-events-none" : "text-white/80 hover:bg-white/5 hover:scale-105",
+                  isSelected && "bg-primary text-white hover:bg-primary hover:scale-100 shadow-[0_4px_12px_-2px_rgba(var(--primary-rgb),0.3)]",
+                  !isSelected && isToday(day) && "text-primary border border-primary/20"
                 )}
               >
                 <span className="relative z-10">{format(day, "d")}</span>
+                {hasEntry && !isSelected && (
+                  <div className="absolute bottom-1 w-0.5 h-0.5 rounded-full bg-primary/40" />
+                )}
               </button>
             );
           })}
@@ -113,27 +129,25 @@ export default function Calendar({
       </div>
 
       {/* Footer Actions */}
-      <div className="flex items-center justify-between p-4 bg-transparent border-t border-white/5">
+      <div className="p-3 bg-white/[0.02] flex items-center justify-end space-x-1 border-t border-white/5">
         <button 
           onClick={onClear}
-          className="px-4 py-2 text-[#f48fb1] font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-white/5"
+          className="px-3 py-1.5 text-primary/60 font-bold text-[10px] uppercase tracking-wider rounded-lg hover:bg-white/5 mr-auto"
         >
           {STRINGS.common?.clear || "Clear"}
         </button>
-        <div className="flex space-x-2">
-          <button 
-            onClick={onCancel}
-            className="px-4 py-2 text-[#f48fb1] font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-white/5"
-          >
-            {STRINGS.common?.cancel || "Cancel"}
-          </button>
-          <button 
-            onClick={onSet}
-            className="px-4 py-2 text-[#f48fb1] font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-white/5"
-          >
-            {STRINGS.common?.set || "Set"}
-          </button>
-        </div>
+        <button 
+          onClick={onCancel}
+          className="px-3 py-1.5 text-white/40 font-bold text-[10px] uppercase tracking-wider rounded-lg hover:bg-white/5"
+        >
+          {STRINGS.common?.cancel || "Cancel"}
+        </button>
+        <button 
+          onClick={onSet}
+          className="px-4 py-2 bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] uppercase tracking-wider rounded-lg hover:bg-primary/30"
+        >
+          {STRINGS.common?.set || "Set"}
+        </button>
       </div>
     </div>
   );
